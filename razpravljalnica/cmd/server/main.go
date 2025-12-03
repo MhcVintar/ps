@@ -24,16 +24,23 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
+				Name:     "id",
+				Aliases:  []string{"i"},
+				Usage:    "ID for the server",
+				Required: true,
+			},
+			&cli.StringFlag{
 				Name:    "next",
 				Aliases: []string{"n"},
-				Usage:   "Address for the next server in the chain",
+				Usage:   "Address of the next server in the chain",
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			address := command.String("address")
+			id := command.String("id")
 			nextAddress := command.String("next")
 
-			server, err := server.NewServer(address, nextAddress)
+			server, err := server.NewServer(address, id, nextAddress)
 			if err != nil {
 				return err
 			}

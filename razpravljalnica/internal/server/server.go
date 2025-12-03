@@ -9,10 +9,11 @@ import (
 	"razpravljalnica/internal/shared"
 	"syscall"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -20,34 +21,31 @@ import (
 
 type Server struct {
 	api.UnimplementedMessageBoardServer
-	id         string
-	address    string
-	grpcServer *grpc.Server
-	db         *gorm.DB
-	pubSub     *shared.PubSub
-	nextConn   *grpc.ClientConn
-	nextServer api.MessageBoardClient
+	id           string
+	address      string
+	grpcServer   *grpc.Server
+	healthServer *health.Server
+	db           *gorm.DB
+	pubSub       *shared.PubSub
+	nextConn     *grpc.ClientConn
+	nextServer   api.MessageBoardClient
 }
 
 var _ api.MessageBoardServer = (*Server)(nil)
 
-func NewServer(address, nextAddress string) (*Server, error) {
+func NewServer(address, id, nextAddress string) (*Server, error) {
 	db, err := shared.NewDatabase()
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to generate node id: %v", err)
-	}
-
 	server := &Server{
-		id:         id.String(),
-		address:    address,
-		grpcServer: grpc.NewServer(),
-		db:         db,
-		pubSub:     shared.NewPubSub(),
+		id:           id,
+		address:      address,
+		grpcServer:   grpc.NewServer(),
+		healthServer: health.NewServer(),
+		db:           db,
+		pubSub:       shared.NewPubSub(),
 	}
 
 	if nextAddress != "" {
@@ -61,6 +59,7 @@ func NewServer(address, nextAddress string) (*Server, error) {
 	}
 
 	api.RegisterMessageBoardServer(server.grpcServer, server)
+	grpc_health_v1.RegisterHealthServer(server.grpcServer, server.healthServer)
 	reflection.Register(server.grpcServer)
 
 	return server, nil
