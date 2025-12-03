@@ -15,7 +15,7 @@ func (s *Server) ListTopics(ctx context.Context, request *emptypb.Empty) (*api.L
 	result := s.db.Find(&topics)
 	if result.Error != nil {
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	apiTopis := make([]*api.Topic, len(topics))

@@ -22,7 +22,7 @@ func (s *Server) LikeMessage(ctx context.Context, request *api.LikeMessageReques
 		}
 
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	var like shared.Like
@@ -31,7 +31,7 @@ func (s *Server) LikeMessage(ctx context.Context, request *api.LikeMessageReques
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-			return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+			return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 		}
 
 		like := shared.Like{

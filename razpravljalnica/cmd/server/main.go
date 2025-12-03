@@ -15,22 +15,30 @@ func main() {
 
 	cmd := &cli.Command{
 		Name:  "server",
-		Usage: "Start the gRPC server",
+		Usage: "Start the server",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "address",
 				Aliases:  []string{"a"},
-				Usage:    "Address for the gRPC server",
+				Usage:    "Address for the server",
 				Required: true,
+			},
+			&cli.StringFlag{
+				Name:    "next",
+				Aliases: []string{"n"},
+				Usage:   "Address for the next server in the chain",
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			address := command.String("address")
+			nextAddress := command.String("next")
 
-			server, err := server.NewServer(address)
+			server, err := server.NewServer(address, nextAddress)
 			if err != nil {
 				return err
 			}
+
+			defer server.Close()
 
 			return server.Run()
 		},

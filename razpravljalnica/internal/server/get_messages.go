@@ -18,7 +18,7 @@ func (s *Server) GetMessages(ctx context.Context, request *api.GetMessagesReques
 		Find(&messages)
 	if result.Error != nil {
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	apiMessages := make([]*api.Message, len(messages))

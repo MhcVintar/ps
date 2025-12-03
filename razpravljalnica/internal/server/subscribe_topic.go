@@ -1,11 +1,12 @@
 package server
 
 import (
-	"fmt"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) SubscribeTopic(request *api.SubscribeTopicRequest, stream grpc.ServerStreamingServer[api.MessageEvent]) error {
@@ -21,7 +22,7 @@ func (s *Server) SubscribeTopic(request *api.SubscribeTopicRequest, stream grpc.
 		case event, ok := <-subscription:
 			if !ok {
 				shared.Logger.ErrorContext(ctx, "subscription closed", "subscribe_token", request.SubscribeToken)
-				return fmt.Errorf("subscription %v closed", request.SubscribeToken)
+				return status.Errorf(codes.Internal, "subscription %v closed", request.SubscribeToken)
 			}
 
 			if err := stream.Send(event); err != nil {

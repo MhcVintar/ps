@@ -22,7 +22,7 @@ func (s *Server) PostMessage(ctx context.Context, request *api.PostMessageReques
 		}
 
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	var topic shared.Topic
@@ -34,7 +34,7 @@ func (s *Server) PostMessage(ctx context.Context, request *api.PostMessageReques
 		}
 
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	message := shared.Message{

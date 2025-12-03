@@ -12,7 +12,7 @@ import (
 func (s *Server) GetSubscriptionNode(ctx context.Context, request *api.SubscriptionNodeRequest) (*api.SubscriptionNodeResponse, error) {
 	token, err := uuid.NewUUID()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to generate subscribe token: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to generate subscribe token: %v", err)
 	}
 
 	return &api.SubscriptionNodeResponse{

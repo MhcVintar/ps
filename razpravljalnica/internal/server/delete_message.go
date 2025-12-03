@@ -23,7 +23,7 @@ func (s *Server) DeleteMessage(ctx context.Context, request *api.DeleteMessageRe
 		}
 
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	if message.UserID != request.UserId {

@@ -22,7 +22,7 @@ func (s *Server) UpdateMessage(ctx context.Context, request *api.UpdateMessageRe
 		}
 
 		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %w", result.Error)
+		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
 	}
 
 	if message.UserID != request.UserId {
