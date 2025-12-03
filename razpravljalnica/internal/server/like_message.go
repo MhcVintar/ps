@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO: implement chain
 func (s *Server) LikeMessage(ctx context.Context, request *api.LikeMessageRequest) (*api.Message, error) {
 	var message shared.Message
 	result := s.db.First(&message, request.MessageId)

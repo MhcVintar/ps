@@ -10,7 +10,18 @@ func (s *Server) CreateTopic(ctx context.Context, request *api.CreateTopicReques
 	topic := shared.Topic{
 		Name: request.Name,
 	}
-	s.db.Create(&topic)
+
+	if s.nextServer != nil {
+		shared.Logger.InfoContext(ctx, "forwarding request to next server in chain", "request", request)
+		apiTopic, err := s.nextServer.CreateTopic(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+
+		topic.ID = apiTopic.Id
+	}
+
+	s.db.Save(&topic)
 	shared.Logger.InfoContext(ctx, "topic created", "topic", topic)
 
 	return &api.Topic{

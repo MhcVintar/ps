@@ -15,6 +15,8 @@ func (s *Server) SubscribeTopic(request *api.SubscribeTopicRequest, stream grpc.
 	subscription := s.pubSub.Subscribe(ctx, request.SubscribeToken, request.TopicId...)
 	defer s.pubSub.Unsubscribe(ctx, request.SubscribeToken, request.TopicId...)
 
+	// TODO: implement the from message id part (send messages as if they were just created)
+
 	for {
 		select {
 		case <-ctx.Done():
