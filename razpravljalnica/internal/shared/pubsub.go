@@ -4,14 +4,12 @@ import (
 	"context"
 	"razpravljalnica/internal/api"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type PubSub struct {
-	event_id      atomic.Int64
 	lock          sync.RWMutex
 	topics        map[int64]map[string]bool
 	subscriptions map[string]chan *api.MessageEvent
@@ -63,7 +61,6 @@ func (p *PubSub) Unsubscribe(ctx context.Context, subscriberID string, topicIDs 
 }
 
 func (p *PubSub) Publish(ctx context.Context, topicID int64, event *api.MessageEvent) {
-	event.SequenceNumber = p.event_id.Add(1)
 	event.EventAt = timestamppb.Now()
 
 	p.lock.RLock()

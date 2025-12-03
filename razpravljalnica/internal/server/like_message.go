@@ -12,22 +12,39 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO: implement chain
 func (s *Server) LikeMessage(ctx context.Context, request *api.LikeMessageRequest) (*api.Message, error) {
 	var message shared.Message
-	result := s.db.First(&message, request.MessageId)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			shared.Logger.InfoContext(ctx, "message not found", "id", request.MessageId)
-			return nil, status.Errorf(codes.NotFound, "message %v not found", request.MessageId)
+
+	if s.nextServer != nil {
+		shared.Logger.InfoContext(ctx, "forwarding request to next server in chain", "request", request)
+		apiMessage, err := s.nextServer.LikeMessage(ctx, request)
+		if err != nil {
+			return nil, err
 		}
 
-		shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
-		return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
+		message = shared.Message{
+			ID:        apiMessage.Id,
+			TopicID:   message.TopicID,
+			UserID:    message.UserID,
+			Text:      message.Text,
+			CreatedAt: apiMessage.GetCreatedAt().AsTime(),
+			Likes:     apiMessage.Likes,
+		}
+	} else {
+		result := s.db.First(&message, request.MessageId)
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				shared.Logger.InfoContext(ctx, "message not found", "id", request.MessageId)
+				return nil, status.Errorf(codes.NotFound, "message %v not found", request.MessageId)
+			}
+
+			shared.Logger.ErrorContext(ctx, "internal database error", "error", result.Error)
+			return nil, status.Errorf(codes.Internal, "internal database error: %v", result.Error)
+		}
 	}
 
 	var like shared.Like
-	result = s.db.First(&like, request.UserId, request.MessageId)
+	result := s.db.First(&like, request.UserId, request.MessageId)
 
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {

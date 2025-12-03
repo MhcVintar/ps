@@ -12,7 +12,7 @@ import (
 
 func (s *Server) GetMessages(ctx context.Context, request *api.GetMessagesRequest) (*api.GetMessagesResponse, error) {
 	var messages []shared.Message
-	result := s.db.Where("id >= ? AND topic_id = ?", request.FromMessageId, request.TopicId).
+	result := s.db.Where("id > ? AND topic_id = ?", request.FromMessageId, request.TopicId).
 		Order("id ASC").
 		Limit(int(request.Limit)).
 		Find(&messages)

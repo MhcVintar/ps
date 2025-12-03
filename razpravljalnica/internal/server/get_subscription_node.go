@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// TODO: decide which node ges this by calling control plane
+// TODO: Handle subscription load balancing
 func (s *Server) GetSubscriptionNode(ctx context.Context, request *api.SubscriptionNodeRequest) (*api.SubscriptionNodeResponse, error) {
 	token, err := uuid.NewUUID()
 	if err != nil {
