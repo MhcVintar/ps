@@ -2,15 +2,48 @@ syntax = "proto3";
 
 package api;
 
+import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "razpravljalnica/internal/api;api";
 
+enum DatabaseOperation {
+  SAVE = 0;
+  DELETE = 1;
+}
+
+enum DatabaseModel {
+  USER = 0;
+  TOPIC = 1;
+  MESSAGE = 2;
+  LIKE = 3;
+}
+
 service InternalMessageBoardService {
+  // Rewire the node's upstream and downstream nodes
   rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
+
+  // Request a database operation
+  rpc ExecuteDatabaseOperation(ExecuteDatabaseOperationRequest) returns (google.protobuf.Empty);
+
+  // Transfer database
+  rpc TransferDatabase(google.protobuf.Empty) returns (stream TransferDatabaseEvent);
 }
 
 message RewireRequest {
   optional string downstream_address = 1;
   optional string upstream_address = 2;
+}
+
+message ExecuteDatabaseOperationRequest {
+  DatabaseOperation database_operation = 1;
+  DatabaseModel database_model = 2;
+  google.protobuf.Any model = 3;
+}
+
+message TransferDatabaseEvent {
+  DatabaseOperation database_operation = 1;
+  DatabaseModel database_model = 2;
+  google.protobuf.Any model = 3;
+  bool done = 4;
 }

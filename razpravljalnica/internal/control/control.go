@@ -22,8 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var healthCheckPeriod = 30 * time.Second
-
 type chainClient struct {
 	id       string
 	conn     *grpc.ClientConn
@@ -122,7 +120,7 @@ func (c *ControlNode) Run() error {
 }
 
 func (c *ControlNode) runChainHealthLoop(ctx context.Context) {
-	ticker := time.NewTicker(healthCheckPeriod)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -237,7 +235,7 @@ func (c *ControlNode) linkChain(ctx context.Context) {
 func (c *ControlNode) repairChain(ctx context.Context) {
 	for _, client := range c.deadClients {
 		go func() {
-			cmd := exec.Command(path.Join("..", "..", "build"), "--id", client.id, "--address", client.conn.Target())
+			cmd := exec.Command(path.Join("..", "..", "build"), "--id", client.id, "--address", client.conn.Target(), "--transfer-address", "TODO")
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Stdin = os.Stdin

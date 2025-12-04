@@ -9,6 +9,7 @@ package api
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
@@ -21,6 +22,104 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type DatabaseOperation int32
+
+const (
+	DatabaseOperation_SAVE   DatabaseOperation = 0
+	DatabaseOperation_DELETE DatabaseOperation = 1
+)
+
+// Enum value maps for DatabaseOperation.
+var (
+	DatabaseOperation_name = map[int32]string{
+		0: "SAVE",
+		1: "DELETE",
+	}
+	DatabaseOperation_value = map[string]int32{
+		"SAVE":   0,
+		"DELETE": 1,
+	}
+)
+
+func (x DatabaseOperation) Enum() *DatabaseOperation {
+	p := new(DatabaseOperation)
+	*p = x
+	return p
+}
+
+func (x DatabaseOperation) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DatabaseOperation) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_api_internal_proto_enumTypes[0].Descriptor()
+}
+
+func (DatabaseOperation) Type() protoreflect.EnumType {
+	return &file_internal_api_internal_proto_enumTypes[0]
+}
+
+func (x DatabaseOperation) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DatabaseOperation.Descriptor instead.
+func (DatabaseOperation) EnumDescriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{0}
+}
+
+type DatabaseModel int32
+
+const (
+	DatabaseModel_USER    DatabaseModel = 0
+	DatabaseModel_TOPIC   DatabaseModel = 1
+	DatabaseModel_MESSAGE DatabaseModel = 2
+	DatabaseModel_LIKE    DatabaseModel = 3
+)
+
+// Enum value maps for DatabaseModel.
+var (
+	DatabaseModel_name = map[int32]string{
+		0: "USER",
+		1: "TOPIC",
+		2: "MESSAGE",
+		3: "LIKE",
+	}
+	DatabaseModel_value = map[string]int32{
+		"USER":    0,
+		"TOPIC":   1,
+		"MESSAGE": 2,
+		"LIKE":    3,
+	}
+)
+
+func (x DatabaseModel) Enum() *DatabaseModel {
+	p := new(DatabaseModel)
+	*p = x
+	return p
+}
+
+func (x DatabaseModel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DatabaseModel) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_api_internal_proto_enumTypes[1].Descriptor()
+}
+
+func (DatabaseModel) Type() protoreflect.EnumType {
+	return &file_internal_api_internal_proto_enumTypes[1]
+}
+
+func (x DatabaseModel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DatabaseModel.Descriptor instead.
+func (DatabaseModel) EnumDescriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
+}
 
 type RewireRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
@@ -74,18 +173,166 @@ func (x *RewireRequest) GetUpstreamAddress() string {
 	return ""
 }
 
+type ExecuteDatabaseOperationRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	DatabaseOperation DatabaseOperation      `protobuf:"varint,1,opt,name=database_operation,json=databaseOperation,proto3,enum=api.DatabaseOperation" json:"database_operation,omitempty"`
+	DatabaseModel     DatabaseModel          `protobuf:"varint,2,opt,name=database_model,json=databaseModel,proto3,enum=api.DatabaseModel" json:"database_model,omitempty"`
+	Model             *anypb.Any             `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ExecuteDatabaseOperationRequest) Reset() {
+	*x = ExecuteDatabaseOperationRequest{}
+	mi := &file_internal_api_internal_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteDatabaseOperationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteDatabaseOperationRequest) ProtoMessage() {}
+
+func (x *ExecuteDatabaseOperationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_api_internal_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteDatabaseOperationRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteDatabaseOperationRequest) Descriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ExecuteDatabaseOperationRequest) GetDatabaseOperation() DatabaseOperation {
+	if x != nil {
+		return x.DatabaseOperation
+	}
+	return DatabaseOperation_SAVE
+}
+
+func (x *ExecuteDatabaseOperationRequest) GetDatabaseModel() DatabaseModel {
+	if x != nil {
+		return x.DatabaseModel
+	}
+	return DatabaseModel_USER
+}
+
+func (x *ExecuteDatabaseOperationRequest) GetModel() *anypb.Any {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type TransferDatabaseEvent struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	DatabaseOperation DatabaseOperation      `protobuf:"varint,1,opt,name=database_operation,json=databaseOperation,proto3,enum=api.DatabaseOperation" json:"database_operation,omitempty"`
+	DatabaseModel     DatabaseModel          `protobuf:"varint,2,opt,name=database_model,json=databaseModel,proto3,enum=api.DatabaseModel" json:"database_model,omitempty"`
+	Model             *anypb.Any             `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	Done              bool                   `protobuf:"varint,4,opt,name=done,proto3" json:"done,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *TransferDatabaseEvent) Reset() {
+	*x = TransferDatabaseEvent{}
+	mi := &file_internal_api_internal_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferDatabaseEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferDatabaseEvent) ProtoMessage() {}
+
+func (x *TransferDatabaseEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_api_internal_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferDatabaseEvent.ProtoReflect.Descriptor instead.
+func (*TransferDatabaseEvent) Descriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TransferDatabaseEvent) GetDatabaseOperation() DatabaseOperation {
+	if x != nil {
+		return x.DatabaseOperation
+	}
+	return DatabaseOperation_SAVE
+}
+
+func (x *TransferDatabaseEvent) GetDatabaseModel() DatabaseModel {
+	if x != nil {
+		return x.DatabaseModel
+	}
+	return DatabaseModel_USER
+}
+
+func (x *TransferDatabaseEvent) GetModel() *anypb.Any {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *TransferDatabaseEvent) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
 var File_internal_api_internal_proto protoreflect.FileDescriptor
 
 const file_internal_api_internal_proto_rawDesc = "" +
 	"\n" +
-	"\x1binternal/api/internal.proto\x12\x03api\x1a\x1bgoogle/protobuf/empty.proto\"\x9f\x01\n" +
+	"\x1binternal/api/internal.proto\x12\x03api\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x9f\x01\n" +
 	"\rRewireRequest\x122\n" +
 	"\x12downstream_address\x18\x01 \x01(\tH\x00R\x11downstreamAddress\x88\x01\x01\x12.\n" +
 	"\x10upstream_address\x18\x02 \x01(\tH\x01R\x0fupstreamAddress\x88\x01\x01B\x15\n" +
 	"\x13_downstream_addressB\x13\n" +
-	"\x11_upstream_address2S\n" +
+	"\x11_upstream_address\"\xcf\x01\n" +
+	"\x1fExecuteDatabaseOperationRequest\x12E\n" +
+	"\x12database_operation\x18\x01 \x01(\x0e2\x16.api.DatabaseOperationR\x11databaseOperation\x129\n" +
+	"\x0edatabase_model\x18\x02 \x01(\x0e2\x12.api.DatabaseModelR\rdatabaseModel\x12*\n" +
+	"\x05model\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05model\"\xd9\x01\n" +
+	"\x15TransferDatabaseEvent\x12E\n" +
+	"\x12database_operation\x18\x01 \x01(\x0e2\x16.api.DatabaseOperationR\x11databaseOperation\x129\n" +
+	"\x0edatabase_model\x18\x02 \x01(\x0e2\x12.api.DatabaseModelR\rdatabaseModel\x12*\n" +
+	"\x05model\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05model\x12\x12\n" +
+	"\x04done\x18\x04 \x01(\bR\x04done*)\n" +
+	"\x11DatabaseOperation\x12\b\n" +
+	"\x04SAVE\x10\x00\x12\n" +
+	"\n" +
+	"\x06DELETE\x10\x01*;\n" +
+	"\rDatabaseModel\x12\b\n" +
+	"\x04USER\x10\x00\x12\t\n" +
+	"\x05TOPIC\x10\x01\x12\v\n" +
+	"\aMESSAGE\x10\x02\x12\b\n" +
+	"\x04LIKE\x10\x032\xf7\x01\n" +
 	"\x1bInternalMessageBoardService\x124\n" +
-	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.EmptyB\"Z razpravljalnica/internal/api;apib\x06proto3"
+	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.Empty\x12X\n" +
+	"\x18ExecuteDatabaseOperation\x12$.api.ExecuteDatabaseOperationRequest\x1a\x16.google.protobuf.Empty\x12H\n" +
+	"\x10TransferDatabase\x12\x16.google.protobuf.Empty\x1a\x1a.api.TransferDatabaseEvent0\x01B\"Z razpravljalnica/internal/api;apib\x06proto3"
 
 var (
 	file_internal_api_internal_proto_rawDescOnce sync.Once
@@ -99,19 +346,35 @@ func file_internal_api_internal_proto_rawDescGZIP() []byte {
 	return file_internal_api_internal_proto_rawDescData
 }
 
-var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_internal_api_internal_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_internal_api_internal_proto_goTypes = []any{
-	(*RewireRequest)(nil), // 0: api.RewireRequest
-	(*emptypb.Empty)(nil), // 1: google.protobuf.Empty
+	(DatabaseOperation)(0),                  // 0: api.DatabaseOperation
+	(DatabaseModel)(0),                      // 1: api.DatabaseModel
+	(*RewireRequest)(nil),                   // 2: api.RewireRequest
+	(*ExecuteDatabaseOperationRequest)(nil), // 3: api.ExecuteDatabaseOperationRequest
+	(*TransferDatabaseEvent)(nil),           // 4: api.TransferDatabaseEvent
+	(*anypb.Any)(nil),                       // 5: google.protobuf.Any
+	(*emptypb.Empty)(nil),                   // 6: google.protobuf.Empty
 }
 var file_internal_api_internal_proto_depIdxs = []int32{
-	0, // 0: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
-	1, // 1: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: api.ExecuteDatabaseOperationRequest.database_operation:type_name -> api.DatabaseOperation
+	1, // 1: api.ExecuteDatabaseOperationRequest.database_model:type_name -> api.DatabaseModel
+	5, // 2: api.ExecuteDatabaseOperationRequest.model:type_name -> google.protobuf.Any
+	0, // 3: api.TransferDatabaseEvent.database_operation:type_name -> api.DatabaseOperation
+	1, // 4: api.TransferDatabaseEvent.database_model:type_name -> api.DatabaseModel
+	5, // 5: api.TransferDatabaseEvent.model:type_name -> google.protobuf.Any
+	2, // 6: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
+	3, // 7: api.InternalMessageBoardService.ExecuteDatabaseOperation:input_type -> api.ExecuteDatabaseOperationRequest
+	6, // 8: api.InternalMessageBoardService.TransferDatabase:input_type -> google.protobuf.Empty
+	6, // 9: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
+	6, // 10: api.InternalMessageBoardService.ExecuteDatabaseOperation:output_type -> google.protobuf.Empty
+	4, // 11: api.InternalMessageBoardService.TransferDatabase:output_type -> api.TransferDatabaseEvent
+	9, // [9:12] is the sub-list for method output_type
+	6, // [6:9] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_api_internal_proto_init() }
@@ -125,13 +388,14 @@ func file_internal_api_internal_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_api_internal_proto_rawDesc), len(file_internal_api_internal_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   1,
+			NumEnums:      2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_internal_api_internal_proto_goTypes,
 		DependencyIndexes: file_internal_api_internal_proto_depIdxs,
+		EnumInfos:         file_internal_api_internal_proto_enumTypes,
 		MessageInfos:      file_internal_api_internal_proto_msgTypes,
 	}.Build()
 	File_internal_api_internal_proto = out.File

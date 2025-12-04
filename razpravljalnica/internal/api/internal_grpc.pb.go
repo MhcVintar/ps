@@ -20,14 +20,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InternalMessageBoardService_Rewire_FullMethodName = "/api.InternalMessageBoardService/Rewire"
+	InternalMessageBoardService_Rewire_FullMethodName                   = "/api.InternalMessageBoardService/Rewire"
+	InternalMessageBoardService_ExecuteDatabaseOperation_FullMethodName = "/api.InternalMessageBoardService/ExecuteDatabaseOperation"
+	InternalMessageBoardService_TransferDatabase_FullMethodName         = "/api.InternalMessageBoardService/TransferDatabase"
 )
 
 // InternalMessageBoardServiceClient is the client API for InternalMessageBoardService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalMessageBoardServiceClient interface {
+	// Rewire the node's upstream and downstream nodes
 	Rewire(ctx context.Context, in *RewireRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Request a database operation
+	ExecuteDatabaseOperation(ctx context.Context, in *ExecuteDatabaseOperationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Transfer database
+	TransferDatabase(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TransferDatabaseEvent], error)
 }
 
 type internalMessageBoardServiceClient struct {
@@ -48,11 +55,45 @@ func (c *internalMessageBoardServiceClient) Rewire(ctx context.Context, in *Rewi
 	return out, nil
 }
 
+func (c *internalMessageBoardServiceClient) ExecuteDatabaseOperation(ctx context.Context, in *ExecuteDatabaseOperationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, InternalMessageBoardService_ExecuteDatabaseOperation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *internalMessageBoardServiceClient) TransferDatabase(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TransferDatabaseEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &InternalMessageBoardService_ServiceDesc.Streams[0], InternalMessageBoardService_TransferDatabase_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[emptypb.Empty, TransferDatabaseEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalMessageBoardService_TransferDatabaseClient = grpc.ServerStreamingClient[TransferDatabaseEvent]
+
 // InternalMessageBoardServiceServer is the server API for InternalMessageBoardService service.
 // All implementations must embed UnimplementedInternalMessageBoardServiceServer
 // for forward compatibility.
 type InternalMessageBoardServiceServer interface {
+	// Rewire the node's upstream and downstream nodes
 	Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error)
+	// Request a database operation
+	ExecuteDatabaseOperation(context.Context, *ExecuteDatabaseOperationRequest) (*emptypb.Empty, error)
+	// Transfer database
+	TransferDatabase(*emptypb.Empty, grpc.ServerStreamingServer[TransferDatabaseEvent]) error
 	mustEmbedUnimplementedInternalMessageBoardServiceServer()
 }
 
@@ -65,6 +106,12 @@ type UnimplementedInternalMessageBoardServiceServer struct{}
 
 func (UnimplementedInternalMessageBoardServiceServer) Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rewire not implemented")
+}
+func (UnimplementedInternalMessageBoardServiceServer) ExecuteDatabaseOperation(context.Context, *ExecuteDatabaseOperationRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteDatabaseOperation not implemented")
+}
+func (UnimplementedInternalMessageBoardServiceServer) TransferDatabase(*emptypb.Empty, grpc.ServerStreamingServer[TransferDatabaseEvent]) error {
+	return status.Errorf(codes.Unimplemented, "method TransferDatabase not implemented")
 }
 func (UnimplementedInternalMessageBoardServiceServer) mustEmbedUnimplementedInternalMessageBoardServiceServer() {
 }
@@ -106,6 +153,35 @@ func _InternalMessageBoardService_Rewire_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InternalMessageBoardService_ExecuteDatabaseOperation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteDatabaseOperationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalMessageBoardServiceServer).ExecuteDatabaseOperation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalMessageBoardService_ExecuteDatabaseOperation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalMessageBoardServiceServer).ExecuteDatabaseOperation(ctx, req.(*ExecuteDatabaseOperationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InternalMessageBoardService_TransferDatabase_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(emptypb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(InternalMessageBoardServiceServer).TransferDatabase(m, &grpc.GenericServerStream[emptypb.Empty, TransferDatabaseEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalMessageBoardService_TransferDatabaseServer = grpc.ServerStreamingServer[TransferDatabaseEvent]
+
 // InternalMessageBoardService_ServiceDesc is the grpc.ServiceDesc for InternalMessageBoardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -117,7 +193,17 @@ var InternalMessageBoardService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Rewire",
 			Handler:    _InternalMessageBoardService_Rewire_Handler,
 		},
+		{
+			MethodName: "ExecuteDatabaseOperation",
+			Handler:    _InternalMessageBoardService_ExecuteDatabaseOperation_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "TransferDatabase",
+			Handler:       _InternalMessageBoardService_TransferDatabase_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "internal/api/internal.proto",
 }
