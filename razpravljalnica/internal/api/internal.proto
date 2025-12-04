@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "razpravljalnica/internal/api;api";
+
+service InternalMessageBoardService {
+  rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
+}
+
+message RewireRequest {
+  optional string downstream_address = 1;
+  optional string upstream_address = 2;
+}

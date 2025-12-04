@@ -4,18 +4,27 @@ import (
 	"context"
 	"razpravljalnica/internal/api"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (c *Control) GetClusterState(ctx context.Context, _ *emptypb.Empty) (*api.GetClusterStateResponse, error) {
+func (c *ControlNode) GetClusterState(ctx context.Context, _ *emptypb.Empty) (*api.GetClusterStateResponse, error) {
+	nHealthy := len(c.healthyClients)
+	if nHealthy == 0 {
+		return nil, status.Error(codes.Unavailable, "chain is dead")
+	}
+
+	head := c.healthyClients[0]
+	tail := c.healthyClients[nHealthy-1]
 	return &api.GetClusterStateResponse{
 		Head: &api.NodeInfo{
-			NodeId:  c.headID,
-			Address: c.headAddress,
+			NodeId:  head.id,
+			Address: head.conn.Target(),
 		},
 		Tail: &api.NodeInfo{
-			NodeId:  c.tailID,
-			Address: c.tailAddress,
+			NodeId:  tail.id,
+			Address: head.conn.Target(),
 		},
 	}, nil
 }
