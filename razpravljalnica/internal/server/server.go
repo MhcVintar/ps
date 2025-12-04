@@ -26,7 +26,7 @@ type Server struct {
 	grpcServer   *grpc.Server
 	healthServer *health.Server
 	db           *gorm.DB
-	pubSub       *shared.PubSub
+	pubSub       *shared.Observer
 	nextConn     *grpc.ClientConn
 	nextServer   api.MessageBoardClient
 }
@@ -45,7 +45,7 @@ func NewServer(address, id, nextAddress string) (*Server, error) {
 		grpcServer:   grpc.NewServer(),
 		healthServer: health.NewServer(),
 		db:           db,
-		pubSub:       shared.NewPubSub(),
+		pubSub:       shared.NewObserver(),
 	}
 
 	if nextAddress != "" {
