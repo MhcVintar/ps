@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
 	"sync"
@@ -34,8 +36,8 @@ type ControlNode struct {
 	host           string
 	port           int
 	grpcServer     *grpc.Server
-	healthyClients []*chainClient // This is in the order of the actual chain
-	pendingClient  *chainClient
+	healthyClients []*chainClient
+	pendingClients []*chainClient
 	deadClients    []*chainClient
 }
 
@@ -43,11 +45,9 @@ var _ api.ControlPlaneServer = (*ControlNode)(nil)
 
 func NewControlNode(host string, port, wantedChainSize int) (*ControlNode, error) {
 	n := ControlNode{
-		host:           host,
-		port:           port,
-		grpcServer:     grpc.NewServer(),
-		healthyClients: nil,
-		pendingClient:  nil,
+		host:       host,
+		port:       port,
+		grpcServer: grpc.NewServer(),
 	}
 
 	// Prepare chain clients
@@ -70,7 +70,7 @@ func NewControlNode(host string, port, wantedChainSize int) (*ControlNode, error
 		id, err := uuid.NewUUID()
 		if err != nil {
 			cleanup()
-			return nil, status.Errorf(codes.Internal, "failed to generate client id: %v", address, err)
+			return nil, status.Errorf(codes.Internal, "failed to generate client id: %v", err)
 		}
 
 		chainClients = append(chainClients, &chainClient{
@@ -128,10 +128,11 @@ func (c *ControlNode) runChainHealthLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			shared.Logger.Info("stopping health loop")
+			shared.Logger.InfoContext(ctx, "stopping health loop")
 			return
 
 		case <-ticker.C:
+			shared.Logger.InfoContext(ctx, "running health check loop")
 			cycleCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 
 			c.checkChainHealth(cycleCtx)
@@ -145,7 +146,6 @@ func (c *ControlNode) runChainHealthLoop(ctx context.Context) {
 
 func (c *ControlNode) checkChainHealth(ctx context.Context) {
 	var wg sync.WaitGroup
-
 	dead := make([]bool, len(c.healthyClients))
 	for i, client := range c.healthyClients {
 		wg.Add(1)
@@ -158,31 +158,54 @@ func (c *ControlNode) checkChainHealth(ctx context.Context) {
 			}
 		}()
 	}
-
 	wg.Wait()
 
 	var newHealthyClients []*chainClient
 	var newDeadClients []*chainClient
 	for i, client := range c.healthyClients {
 		if dead[i] {
+			shared.Logger.WarnContext(ctx, "chain node is dead", "address", client.conn.Target())
 			newDeadClients = append(newDeadClients, client)
 		} else {
+			shared.Logger.InfoContext(ctx, "chain node is healthy", "address", client.conn.Target())
 			newHealthyClients = append(newHealthyClients, client)
 		}
 	}
 
-	if c.pendingClient != nil {
-		res, err := c.pendingClient.health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
-		if err != nil {
-			newDeadClients = append(newDeadClients, c.pendingClient)
-			c.pendingClient = nil
-		} else if res.Status == grpc_health_v1.HealthCheckResponse_SERVING {
-			newHealthyClients = append(newHealthyClients, c.pendingClient)
-			c.pendingClient = nil
+	dead = make([]bool, len(c.pendingClients))
+	ready := make([]bool, len(c.pendingClients))
+	for i, client := range c.pendingClients {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			res, err := client.health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+			if err != nil {
+				dead[i] = true
+			} else if res.Status == grpc_health_v1.HealthCheckResponse_SERVING {
+				ready[i] = true
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	var newPendingClients []*chainClient
+	for i, client := range c.pendingClients {
+		if dead[i] {
+			shared.Logger.WarnContext(ctx, "pending chain node is dead", "address", client.conn.Target())
+			newDeadClients = append(newDeadClients, client)
+		} else if ready[i] {
+			shared.Logger.InfoContext(ctx, "pending chain node is ready", "address", client.conn.Target())
+			newHealthyClients = append(newHealthyClients, client)
+		} else {
+			shared.Logger.InfoContext(ctx, "pending chain node is healthy", "address", client.conn.Target())
+			newPendingClients = append(newPendingClients, client)
 		}
 	}
 
 	c.healthyClients = newHealthyClients
+	c.pendingClients = newPendingClients
 	c.deadClients = newDeadClients
 }
 
@@ -206,17 +229,24 @@ func (c *ControlNode) linkChain(ctx context.Context) {
 			req.UpstreamAddress = shared.AnyPtr(c.healthyClients[i+1].conn.Target())
 		}
 
+		shared.Logger.InfoContext(ctx, "rewiring chain node", "address", client.conn.Target())
 		go client.internal.Rewire(ctx, &req)
 	}
 }
 
 func (c *ControlNode) repairChain(ctx context.Context) {
-	if len(c.deadClients) == 0 || c.pendingClient != nil {
-		return
+	for _, client := range c.deadClients {
+		go func() {
+			cmd := exec.Command(path.Join("..", "..", "build"), "--id", client.id, "--address", client.conn.Target())
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+
+			if err := cmd.Start(); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to start chain node", "address", client.conn.Target())
+			} else {
+				shared.Logger.InfoContext(ctx, "starting chain node", "address", client.conn.Target())
+			}
+		}()
 	}
-
-	c.pendingClient = c.deadClients[0]
-	c.deadClients = c.deadClients[1:]
-
-	// TODO actually create a new client
 }
