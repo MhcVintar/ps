@@ -1,35 +1,6 @@
-package shared
+package database
 
-import (
-	"fmt"
-	"time"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-)
-
-func NewDatabase() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		Logger: logger.NewSlogLogger(Logger, logger.Config{}),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect database: %w", err)
-	}
-
-	if err := db.AutoMigrate(
-		&User{},
-		&Topic{},
-		&Message{},
-		&Like{},
-	); err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %w", err)
-	}
-
-	Logger.Info("connected to database")
-
-	return db, nil
-}
+import "time"
 
 type User struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement" json:"id"`
