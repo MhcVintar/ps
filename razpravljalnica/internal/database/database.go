@@ -13,8 +13,9 @@ import (
 )
 
 type Database struct {
-	Version atomic.Uint64
-	db      *gorm.DB
+	db         *gorm.DB
+	version    atomic.Uint64
+	observable *shared.Observable[uint64]
 }
 
 func NewDatabase() (*Database, error) {
@@ -37,8 +38,37 @@ func NewDatabase() (*Database, error) {
 	shared.Logger.Info("connected to database")
 
 	return &Database{
-		db: db,
+		db:         db,
+		observable: shared.NewObservable[uint64](),
 	}, nil
+}
+
+func (d *Database) ObserveVersion(ctx context.Context, observerID string) (<-chan *uint64, func()) {
+	return d.observable.Observe(ctx, observerID, 0)
+}
+
+func (d *Database) Save(ctx context.Context, value any) error {
+	result := d.db.Save(value)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	newVersion := d.version.Add(1)
+	d.observable.Notify(ctx, 0, &newVersion)
+
+	return nil
+}
+
+func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
+	result := d.db.Delete(value, conds...)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	newVersion := d.version.Add(1)
+	d.observable.Notify(ctx, 0, &newVersion)
+
+	return nil
 }
 
 func (d *Database) FindUserByID(ctx context.Context, id int64) (user *User, err error) {

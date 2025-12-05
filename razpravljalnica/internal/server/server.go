@@ -25,11 +25,6 @@ func (s *ServerNode) CreateTopic(context.Context, *api.CreateTopicRequest) (*api
 	panic("unimplemented")
 }
 
-// CreateUser implements api.MessageBoardServer.
-func (s *ServerNode) CreateUser(context.Context, *api.CreateUserRequest) (*api.User, error) {
-	panic("unimplemented")
-}
-
 // DeleteMessage implements api.MessageBoardServer.
 func (s *ServerNode) DeleteMessage(context.Context, *api.DeleteMessageRequest) (*emptypb.Empty, error) {
 	panic("unimplemented")
