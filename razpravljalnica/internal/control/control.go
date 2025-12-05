@@ -10,7 +10,6 @@ import (
 	"path"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
-	"slices"
 	"strconv"
 	"sync"
 	"syscall"
@@ -130,63 +129,37 @@ func (c *ControlNode) runServersHealthLoop(ctx context.Context) {
 }
 
 func (c *ControlNode) checkServersHealth(ctx context.Context) {
-	var newHealthyClientsLock, newDeadClientsLock, newPendingClientsLock sync.Mutex
 	var newHealthyClients, newDeadClients, newPendingClients []*shared.ServerNodeClient
 
 	var wg sync.WaitGroup
 
 	for _, client := range c.healthyClients {
-		wg.Add(1)
+		defer wg.Done()
+		_, err := client.Health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 
-		go func() {
-			defer wg.Done()
-			_, err := client.Health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
-
-			if err != nil {
-				newDeadClientsLock.Lock()
-				newDeadClients = append(newDeadClients, client)
-				newDeadClientsLock.Unlock()
-				shared.Logger.WarnContext(ctx, "server node is dead", "address", client.Conn.Target())
-			} else {
-				newHealthyClientsLock.Lock()
-				newHealthyClients = append(newHealthyClients, client)
-				newHealthyClientsLock.Unlock()
-				shared.Logger.InfoContext(ctx, "server node is healthy", "address", client.Conn.Target())
-			}
-		}()
+		if err != nil {
+			newDeadClients = append(newDeadClients, client)
+			shared.Logger.WarnContext(ctx, "server node is dead", "address", client.Conn.Target())
+		} else {
+			newHealthyClients = append(newHealthyClients, client)
+			shared.Logger.InfoContext(ctx, "server node is healthy", "address", client.Conn.Target())
+		}
 	}
-	wg.Wait()
-
-	// To reduce the position changes between healthy nodes
-	slices.SortFunc(newHealthyClients, func(a, b *shared.ServerNodeClient) int {
-		return a.Id - b.Id
-	})
 
 	for _, client := range c.pendingClients {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-			res, err := client.Health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
-			if err != nil {
-				newDeadClientsLock.Lock()
-				newDeadClients = append(newDeadClients, client)
-				newDeadClientsLock.Unlock()
-				shared.Logger.WarnContext(ctx, "pending server node is dead", "address", client.Conn.Target())
-			} else if res.Status == grpc_health_v1.HealthCheckResponse_SERVING {
-				newHealthyClientsLock.Lock()
-				newHealthyClients = append(newHealthyClients, client)
-				newHealthyClientsLock.Unlock()
-				shared.Logger.InfoContext(ctx, "pending server node is ready", "address", client.Conn.Target())
-			} else {
-				newPendingClientsLock.Lock()
-				newPendingClients = append(newPendingClients, client)
-				newPendingClientsLock.Unlock()
-				shared.Logger.InfoContext(ctx, "pending server node is healthy", "address", client.Conn.Target())
-			}
-		}()
+		defer wg.Done()
+		res, err := client.Health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+		if err != nil {
+			newDeadClients = append(newDeadClients, client)
+			shared.Logger.WarnContext(ctx, "pending server node is dead", "address", client.Conn.Target())
+		} else if res.Status == grpc_health_v1.HealthCheckResponse_SERVING {
+			newHealthyClients = append(newHealthyClients, client)
+			shared.Logger.InfoContext(ctx, "pending server node is ready", "address", client.Conn.Target())
+		} else {
+			newPendingClients = append(newPendingClients, client)
+			shared.Logger.InfoContext(ctx, "pending server node is healthy", "address", client.Conn.Target())
+		}
 	}
-	wg.Wait()
 
 	c.healthyClients = newHealthyClients
 	c.pendingClients = newPendingClients
