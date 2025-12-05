@@ -11,6 +11,7 @@ type ServerNodeClient struct {
 	Id       int
 	Conn     *grpc.ClientConn
 	Health   grpc_health_v1.HealthClient
+	Public   api.MessageBoardClient
 	Internal api.InternalMessageBoardServiceClient
 }
 

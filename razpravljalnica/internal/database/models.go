@@ -1,6 +1,16 @@
 package database
 
-import "time"
+import (
+	"razpravljalnica/internal/api"
+	"time"
+)
+
+type WALEntry struct {
+	ID     int64               `gorm:"primaryKey;autoIncrement" json:"id"`
+	Op     api.WALEntry_Op     `gorm:"not null" json:"op"`
+	Target api.WALEntry_Target `gorm:"not null" json:"target"`
+	Data   []byte              `gorm:"type:blob;not null" json:"data"`
+}
 
 type User struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement" json:"id"`

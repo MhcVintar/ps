@@ -67,8 +67,8 @@ func (s *ServerNode) UpdateMessage(context.Context, *api.UpdateMessageRequest) (
 
 // ---
 
-// DownstreamSync implements api.InternalMessageBoardServiceServer.
-func (s *ServerNode) DownstreamSync(context.Context, *api.DownstreamSyncRequest) (*emptypb.Empty, error) {
+// GetWALEntries implements api.InternalMessageBoardServiceServer.
+func (s *ServerNode) GetWALEntries(context.Context, *api.GetWALEntriesRequest) (*api.GetWALEntriesResponse, error) {
 	panic("unimplemented")
 }
 
@@ -164,4 +164,12 @@ func (s *ServerNode) Run() error {
 
 	shared.Logger.Info("server stopped gracefully")
 	return nil
+}
+
+func (s *ServerNode) IsHead() bool {
+	return s.downstreamClient == nil
+}
+
+func (s *ServerNode) IsTail() bool {
+	return s.upstreamClient == nil
 }

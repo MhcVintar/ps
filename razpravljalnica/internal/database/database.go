@@ -2,10 +2,11 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
-	"sync/atomic"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -13,9 +14,7 @@ import (
 )
 
 type Database struct {
-	db         *gorm.DB
-	version    atomic.Uint64
-	observable *shared.Observable[uint64]
+	db *gorm.DB
 }
 
 func NewDatabase() (*Database, error) {
@@ -38,60 +37,101 @@ func NewDatabase() (*Database, error) {
 	shared.Logger.Info("connected to database")
 
 	return &Database{
-		db:         db,
-		observable: shared.NewObservable[uint64](),
+		db: db,
 	}, nil
 }
 
-func (d *Database) ObserveVersion(ctx context.Context, observerID string) (<-chan *uint64, func()) {
-	return d.observable.Observe(ctx, observerID, 0)
+func (d *Database) Version() (int64, error) {
+	var maxID int64
+	if err := d.db.Model(&WALEntry{}).Select("MAX(id)").Scan(&maxID).Error; err != nil {
+		return 0, err
+	}
+	return maxID, nil
 }
 
 func (d *Database) Save(ctx context.Context, value any) error {
-	result := d.db.Save(value)
-	if result.Error != nil {
-		return result.Error
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
 	}
 
-	newVersion := d.version.Add(1)
-	d.observable.Notify(ctx, 0, &newVersion)
+	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		walEntry := WALEntry{
+			Op:     api.WALEntry_OP_SAVE,
+			Target: getTarget(value),
+			Data:   data,
+		}
+		if err := tx.Create(&walEntry).Error; err != nil {
+			return err
+		}
 
-	return nil
+		if err := tx.Save(value).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
-	result := d.db.Delete(value, conds...)
-	if result.Error != nil {
-		return result.Error
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
 	}
 
-	newVersion := d.version.Add(1)
-	d.observable.Notify(ctx, 0, &newVersion)
+	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		walEntry := WALEntry{
+			Op:     api.WALEntry_OP_DELETE,
+			Target: getTarget(value),
+			Data:   data,
+		}
+		if err := tx.Create(&walEntry).Error; err != nil {
+			return err
+		}
 
-	return nil
+		if err := tx.Delete(value).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func getTarget(value any) api.WALEntry_Target {
+	var target api.WALEntry_Target
+	switch value.(type) {
+	case *User:
+		target = api.WALEntry_TARGET_USER
+	case *Topic:
+		target = api.WALEntry_TARGET_TOPIC
+	case *Message:
+		target = api.WALEntry_TARGET_MESSAGE
+	case *Like:
+		target = api.WALEntry_TARGET_LIKE
+	}
+
+	return target
 }
 
 func (d *Database) FindUserByID(ctx context.Context, id int64) (user *User, err error) {
-	result := d.db.First(&user, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if err := d.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 
-		return nil, result.Error
+		return nil, err
 	}
 
 	return user, nil
 }
 
 func (d *Database) FindTopicByID(ctx context.Context, id int64) (topic *Topic, err error) {
-	result := d.db.First(&topic, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if err := d.db.First(&topic, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 
-		return nil, result.Error
+		return nil, err
 	}
 
 	return topic, nil
