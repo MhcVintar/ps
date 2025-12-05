@@ -11,6 +11,7 @@ import (
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
 	"slices"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -215,7 +216,7 @@ func (c *ControlNode) linkServers(ctx context.Context) {
 func (c *ControlNode) repairServers(ctx context.Context) {
 	for _, client := range c.deadClients {
 		go func() {
-			cmd := exec.Command(path.Join("..", "..", "build"), "--id", string(client.Id), "--address", client.Conn.Target(), "--control-address", c.address)
+			cmd := exec.Command(path.Join("..", "..", "build"), "--id", strconv.Itoa(client.Id), "--address", client.Conn.Target(), "--control", c.address)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Stdin = os.Stdin

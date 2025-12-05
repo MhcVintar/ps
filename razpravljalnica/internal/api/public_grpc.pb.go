@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: internal/api/schema.proto
+// source: internal/api/public.proto
 
 package api
 
@@ -484,7 +484,7 @@ var MessageBoard_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/api/schema.proto",
+	Metadata: "internal/api/public.proto",
 }
 
 const (
@@ -590,5 +590,5 @@ var ControlPlane_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/api/schema.proto",
+	Metadata: "internal/api/public.proto",
 }

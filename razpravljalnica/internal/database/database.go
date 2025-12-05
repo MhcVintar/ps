@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"razpravljalnica/internal/shared"
+	"sync/atomic"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -12,7 +13,8 @@ import (
 )
 
 type Database struct {
-	db *gorm.DB
+	Version atomic.Uint64
+	db      *gorm.DB
 }
 
 func NewDatabase() (*Database, error) {

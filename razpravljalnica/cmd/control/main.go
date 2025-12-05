@@ -18,51 +18,40 @@ func main() {
 		Usage: "Start the control",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "address",
-				Aliases:  []string{"a"},
-				Usage:    "Address for the control",
+				Name:     "host",
+				Aliases:  []string{"h"},
+				Usage:    "Host for the control node",
 				Required: true,
 			},
-			&cli.StringFlag{
-				Name:     "head-address",
-				Aliases:  []string{"ha"},
-				Usage:    "Address of the chain's head server",
+			&cli.IntFlag{
+				Name:     "port",
+				Aliases:  []string{"p"},
+				Usage:    "Port for the control node",
 				Required: true,
 			},
-			&cli.StringFlag{
-				Name:     "head-id",
-				Aliases:  []string{"hi"},
-				Usage:    "ID of the chain's head server",
-				Required: true,
-			},
-			&cli.StringFlag{
-				Name:     "tail-address",
-				Aliases:  []string{"ta"},
-				Usage:    "Address of the chain's tail server",
-				Required: true,
-			},
-			&cli.StringFlag{
-				Name:     "tail-id",
-				Aliases:  []string{"ti"},
-				Usage:    "ID of the chain's tail server",
+			&cli.IntFlag{
+				Name:     "server-nodes",
+				Aliases:  []string{"s"},
+				Usage:    "Number of server nodes",
 				Required: true,
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			address := command.String("address")
-			headAddress := command.String("head-address")
-			headID := command.String("head-id")
-			tailAddress := command.String("tail-address")
-			tailID := command.String("tail-id")
+			host := command.String("host")
+			port := command.Int("port")
+			nServerNodes := command.Int("server-nodes")
 
-			control := control.NewControl(address, headAddress, headID, tailAddress, tailID)
+			control, err := control.NewControlNode(host, port, nServerNodes)
+			if err != nil {
+				return err
+			}
 
 			return control.Run()
 		},
 	}
 
 	if err := cmd.Run(ctx, os.Args); err != nil {
-		shared.Logger.ErrorContext(ctx, "server failed", "error", err)
+		shared.Logger.ErrorContext(ctx, "client node failed", "error", err)
 		os.Exit(1)
 	}
 }

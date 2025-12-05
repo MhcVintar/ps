@@ -17,6 +17,12 @@ func main() {
 		Name:  "server",
 		Usage: "Start the server",
 		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:     "id",
+				Aliases:  []string{"i"},
+				Usage:    "ID for the server",
+				Required: true,
+			},
 			&cli.StringFlag{
 				Name:     "address",
 				Aliases:  []string{"a"},
@@ -24,35 +30,27 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "id",
-				Aliases:  []string{"i"},
-				Usage:    "ID for the server",
-				Required: true,
-			},
-			&cli.StringFlag{
-				Name:    "next",
-				Aliases: []string{"n"},
-				Usage:   "Address of the next server in the chain",
+				Name:    "control",
+				Aliases: []string{"c"},
+				Usage:   "Address of the control node",
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
+			id := command.Int("id")
 			address := command.String("address")
-			id := command.String("id")
-			nextAddress := command.String("next")
+			control := command.String("control")
 
-			server, err := server.NewServer(address, id, nextAddress)
+			server, err := server.NewServerNode(id, address, control)
 			if err != nil {
 				return err
 			}
-
-			defer server.Close()
 
 			return server.Run()
 		},
 	}
 
 	if err := cmd.Run(ctx, os.Args); err != nil {
-		shared.Logger.ErrorContext(ctx, "server failed", "error", err)
+		shared.Logger.ErrorContext(ctx, "server node failed", "error", err)
 		os.Exit(1)
 	}
 }

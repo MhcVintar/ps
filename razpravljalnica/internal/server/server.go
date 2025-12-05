@@ -2,9 +2,14 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"os"
+	"os/signal"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/database"
 	"razpravljalnica/internal/shared"
+	"syscall"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -65,18 +70,15 @@ func (s *ServerNode) UpdateMessage(context.Context, *api.UpdateMessageRequest) (
 	panic("unimplemented")
 }
 
-// ExecuteDatabaseOperation implements api.InternalMessageBoardServiceServer.
-func (s *ServerNode) ExecuteDatabaseOperation(context.Context, *api.ExecuteDatabaseOperationRequest) (*emptypb.Empty, error) {
+// ---
+
+// DownstreamSync implements api.InternalMessageBoardServiceServer.
+func (s *ServerNode) DownstreamSync(context.Context, *api.DownstreamSyncRequest) (*emptypb.Empty, error) {
 	panic("unimplemented")
 }
 
 // Rewire implements api.InternalMessageBoardServiceServer.
 func (s *ServerNode) Rewire(context.Context, *api.RewireRequest) (*emptypb.Empty, error) {
-	panic("unimplemented")
-}
-
-// TransferDatabase implements api.InternalMessageBoardServiceServer.
-func (s *ServerNode) TransferDatabase(*emptypb.Empty, grpc.ServerStreamingServer[api.TransferDatabaseEvent]) error {
 	panic("unimplemented")
 }
 
@@ -97,7 +99,7 @@ type ServerNode struct {
 var _ api.InternalMessageBoardServiceServer = (*ServerNode)(nil)
 var _ api.MessageBoardServer = (*ServerNode)(nil)
 
-func NewServerNode(id int, address, controlAddress string) (*ServerNode, error) {
+func NewServerNode(id int, address, control string) (*ServerNode, error) {
 	s := ServerNode{
 		id:                   id,
 		address:              address,
@@ -117,7 +119,7 @@ func NewServerNode(id int, address, controlAddress string) (*ServerNode, error) 
 	s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 
 	// Prepare control client
-	conn, err := grpc.NewClient(controlAddress)
+	conn, err := grpc.NewClient(control)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to open client connection to %q: %v", address, err)
 	}
@@ -136,79 +138,35 @@ func NewServerNode(id int, address, controlAddress string) (*ServerNode, error) 
 	return &s, nil
 }
 
-// type Server struct {
-// 	api.UnimplementedMessageBoardServer
-// 	id           string
-// 	address      string
-// 	grpcServer   *grpc.Server
-// 	healthServer *health.Server
-// 	db           *gorm.DB
-// 	pubSub       *shared.Observer
-// 	nextConn     *grpc.ClientConn
-// 	nextServer   api.MessageBoardClient
-// }
+func (s *ServerNode) Run() error {
+	listener, err := net.Listen("tcp", s.address)
+	if err != nil {
+		return fmt.Errorf("failed to listen: %w", err)
+	}
 
-// var _ api.MessageBoardServer = (*Server)(nil)
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-// func NewServer(address, id, nextAddress string) (*Server, error) {
-// 	db, err := shared.NewDatabase()
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	go func() {
+		sig := <-signalChan
+		shared.Logger.Info("received shutdown signal", "signal", sig.String())
+		s.grpcServer.GracefulStop()
 
-// 	server := &Server{
-// 		id:           id,
-// 		address:      address,
-// 		grpcServer:   grpc.NewServer(),
-// 		healthServer: health.NewServer(),
-// 		db:           db,
-// 		pubSub:       shared.NewObserver(),
-// 	}
+		s.controlClient.Conn.Close()
+		if s.downstreamClient != nil {
+			s.downstreamClient.Conn.Close()
+		}
+		if s.upstreamClient != nil {
+			s.upstreamClient.Conn.Close()
+		}
+	}()
 
-// 	if nextAddress != "" {
-// 		server.nextConn, err = grpc.NewClient(nextAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-// 		if err != nil {
-// 			return nil, status.Errorf(codes.InvalidArgument, "failed to connect to next server: %v", err)
-// 		}
+	shared.Logger.Info("server running", "address", s.address)
 
-// 		shared.Logger.Info("connected to next server in chain")
-// 		server.nextServer = api.NewMessageBoardClient(server.nextConn)
-// 	}
+	if err := s.grpcServer.Serve(listener); err != nil {
+		return fmt.Errorf("failed to serve: %w", err)
+	}
 
-// 	api.RegisterMessageBoardServer(server.grpcServer, server)
-// 	grpc_health_v1.RegisterHealthServer(server.grpcServer, server.healthServer)
-// 	reflection.Register(server.grpcServer)
-
-// 	return server, nil
-// }
-
-// func (s *Server) Run() error {
-// 	listener, err := net.Listen("tcp", s.address)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to listen: %w", err)
-// 	}
-
-// 	signalChan := make(chan os.Signal, 1)
-// 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
-
-// 	go func() {
-// 		sig := <-signalChan
-// 		shared.Logger.Info("received shutdown signal", "signal", sig.String())
-// 		s.grpcServer.GracefulStop()
-// 	}()
-
-// 	shared.Logger.Info("server running", "address", s.address)
-
-// 	if err := s.grpcServer.Serve(listener); err != nil {
-// 		return fmt.Errorf("failed to serve: %w", err)
-// 	}
-
-// 	shared.Logger.Info("server stopped gracefully")
-// 	return nil
-// }
-
-// func (s *Server) Close() {
-// 	if s.nextConn != nil {
-// 		s.nextConn.Close()
-// 	}
-// }
+	shared.Logger.Info("server stopped gracefully")
+	return nil
+}

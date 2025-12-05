@@ -23,104 +23,158 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DatabaseOperation int32
+type DownstreamSyncRequest_Op int32
 
 const (
-	DatabaseOperation_SAVE   DatabaseOperation = 0
-	DatabaseOperation_DELETE DatabaseOperation = 1
+	DownstreamSyncRequest_OP_SAVE   DownstreamSyncRequest_Op = 0
+	DownstreamSyncRequest_OP_DELETE DownstreamSyncRequest_Op = 1
 )
 
-// Enum value maps for DatabaseOperation.
+// Enum value maps for DownstreamSyncRequest_Op.
 var (
-	DatabaseOperation_name = map[int32]string{
-		0: "SAVE",
-		1: "DELETE",
+	DownstreamSyncRequest_Op_name = map[int32]string{
+		0: "OP_SAVE",
+		1: "OP_DELETE",
 	}
-	DatabaseOperation_value = map[string]int32{
-		"SAVE":   0,
-		"DELETE": 1,
+	DownstreamSyncRequest_Op_value = map[string]int32{
+		"OP_SAVE":   0,
+		"OP_DELETE": 1,
 	}
 )
 
-func (x DatabaseOperation) Enum() *DatabaseOperation {
-	p := new(DatabaseOperation)
+func (x DownstreamSyncRequest_Op) Enum() *DownstreamSyncRequest_Op {
+	p := new(DownstreamSyncRequest_Op)
 	*p = x
 	return p
 }
 
-func (x DatabaseOperation) String() string {
+func (x DownstreamSyncRequest_Op) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (DatabaseOperation) Descriptor() protoreflect.EnumDescriptor {
+func (DownstreamSyncRequest_Op) Descriptor() protoreflect.EnumDescriptor {
 	return file_internal_api_internal_proto_enumTypes[0].Descriptor()
 }
 
-func (DatabaseOperation) Type() protoreflect.EnumType {
+func (DownstreamSyncRequest_Op) Type() protoreflect.EnumType {
 	return &file_internal_api_internal_proto_enumTypes[0]
 }
 
-func (x DatabaseOperation) Number() protoreflect.EnumNumber {
+func (x DownstreamSyncRequest_Op) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use DatabaseOperation.Descriptor instead.
-func (DatabaseOperation) EnumDescriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use DownstreamSyncRequest_Op.Descriptor instead.
+func (DownstreamSyncRequest_Op) EnumDescriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{0, 0}
 }
 
-type DatabaseModel int32
+type DownstreamSyncRequest_Target int32
 
 const (
-	DatabaseModel_USER    DatabaseModel = 0
-	DatabaseModel_TOPIC   DatabaseModel = 1
-	DatabaseModel_MESSAGE DatabaseModel = 2
-	DatabaseModel_LIKE    DatabaseModel = 3
+	DownstreamSyncRequest_TARGET_USER    DownstreamSyncRequest_Target = 0
+	DownstreamSyncRequest_TARGET_TOPIC   DownstreamSyncRequest_Target = 1
+	DownstreamSyncRequest_TARGET_MESSAGE DownstreamSyncRequest_Target = 2
+	DownstreamSyncRequest_TARGET_LIKE    DownstreamSyncRequest_Target = 3
 )
 
-// Enum value maps for DatabaseModel.
+// Enum value maps for DownstreamSyncRequest_Target.
 var (
-	DatabaseModel_name = map[int32]string{
-		0: "USER",
-		1: "TOPIC",
-		2: "MESSAGE",
-		3: "LIKE",
+	DownstreamSyncRequest_Target_name = map[int32]string{
+		0: "TARGET_USER",
+		1: "TARGET_TOPIC",
+		2: "TARGET_MESSAGE",
+		3: "TARGET_LIKE",
 	}
-	DatabaseModel_value = map[string]int32{
-		"USER":    0,
-		"TOPIC":   1,
-		"MESSAGE": 2,
-		"LIKE":    3,
+	DownstreamSyncRequest_Target_value = map[string]int32{
+		"TARGET_USER":    0,
+		"TARGET_TOPIC":   1,
+		"TARGET_MESSAGE": 2,
+		"TARGET_LIKE":    3,
 	}
 )
 
-func (x DatabaseModel) Enum() *DatabaseModel {
-	p := new(DatabaseModel)
+func (x DownstreamSyncRequest_Target) Enum() *DownstreamSyncRequest_Target {
+	p := new(DownstreamSyncRequest_Target)
 	*p = x
 	return p
 }
 
-func (x DatabaseModel) String() string {
+func (x DownstreamSyncRequest_Target) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (DatabaseModel) Descriptor() protoreflect.EnumDescriptor {
+func (DownstreamSyncRequest_Target) Descriptor() protoreflect.EnumDescriptor {
 	return file_internal_api_internal_proto_enumTypes[1].Descriptor()
 }
 
-func (DatabaseModel) Type() protoreflect.EnumType {
+func (DownstreamSyncRequest_Target) Type() protoreflect.EnumType {
 	return &file_internal_api_internal_proto_enumTypes[1]
 }
 
-func (x DatabaseModel) Number() protoreflect.EnumNumber {
+func (x DownstreamSyncRequest_Target) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use DatabaseModel.Descriptor instead.
-func (DatabaseModel) EnumDescriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use DownstreamSyncRequest_Target.Descriptor instead.
+func (DownstreamSyncRequest_Target) EnumDescriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{0, 1}
 }
 
+type DownstreamSyncRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TODO add version tracking to databse
+	Version       uint64                              `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	DatabaseOps   []*DownstreamSyncRequest_DatabaseOp `protobuf:"bytes,2,rep,name=database_ops,json=databaseOps,proto3" json:"database_ops,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownstreamSyncRequest) Reset() {
+	*x = DownstreamSyncRequest{}
+	mi := &file_internal_api_internal_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownstreamSyncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownstreamSyncRequest) ProtoMessage() {}
+
+func (x *DownstreamSyncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_api_internal_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownstreamSyncRequest.ProtoReflect.Descriptor instead.
+func (*DownstreamSyncRequest) Descriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DownstreamSyncRequest) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *DownstreamSyncRequest) GetDatabaseOps() []*DownstreamSyncRequest_DatabaseOp {
+	if x != nil {
+		return x.DatabaseOps
+	}
+	return nil
+}
+
+// TODO If a field is missing, that means that there should be no connection. Also, before opening a new connection, check if it actually differs from the existing one.
 type RewireRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	DownstreamAddress *string                `protobuf:"bytes,1,opt,name=downstream_address,json=downstreamAddress,proto3,oneof" json:"downstream_address,omitempty"`
@@ -131,7 +185,7 @@ type RewireRequest struct {
 
 func (x *RewireRequest) Reset() {
 	*x = RewireRequest{}
-	mi := &file_internal_api_internal_proto_msgTypes[0]
+	mi := &file_internal_api_internal_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +197,7 @@ func (x *RewireRequest) String() string {
 func (*RewireRequest) ProtoMessage() {}
 
 func (x *RewireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_api_internal_proto_msgTypes[0]
+	mi := &file_internal_api_internal_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +210,7 @@ func (x *RewireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RewireRequest.ProtoReflect.Descriptor instead.
 func (*RewireRequest) Descriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{0}
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RewireRequest) GetDownstreamAddress() string {
@@ -173,90 +227,29 @@ func (x *RewireRequest) GetUpstreamAddress() string {
 	return ""
 }
 
-type ExecuteDatabaseOperationRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	DatabaseOperation DatabaseOperation      `protobuf:"varint,1,opt,name=database_operation,json=databaseOperation,proto3,enum=api.DatabaseOperation" json:"database_operation,omitempty"`
-	DatabaseModel     DatabaseModel          `protobuf:"varint,2,opt,name=database_model,json=databaseModel,proto3,enum=api.DatabaseModel" json:"database_model,omitempty"`
-	Model             *anypb.Any             `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+type DownstreamSyncRequest_DatabaseOp struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Op            DownstreamSyncRequest_Op     `protobuf:"varint,1,opt,name=op,proto3,enum=api.DownstreamSyncRequest_Op" json:"op,omitempty"`
+	Target        DownstreamSyncRequest_Target `protobuf:"varint,2,opt,name=target,proto3,enum=api.DownstreamSyncRequest_Target" json:"target,omitempty"`
+	Data          *anypb.Any                   `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ExecuteDatabaseOperationRequest) Reset() {
-	*x = ExecuteDatabaseOperationRequest{}
-	mi := &file_internal_api_internal_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExecuteDatabaseOperationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecuteDatabaseOperationRequest) ProtoMessage() {}
-
-func (x *ExecuteDatabaseOperationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_api_internal_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecuteDatabaseOperationRequest.ProtoReflect.Descriptor instead.
-func (*ExecuteDatabaseOperationRequest) Descriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ExecuteDatabaseOperationRequest) GetDatabaseOperation() DatabaseOperation {
-	if x != nil {
-		return x.DatabaseOperation
-	}
-	return DatabaseOperation_SAVE
-}
-
-func (x *ExecuteDatabaseOperationRequest) GetDatabaseModel() DatabaseModel {
-	if x != nil {
-		return x.DatabaseModel
-	}
-	return DatabaseModel_USER
-}
-
-func (x *ExecuteDatabaseOperationRequest) GetModel() *anypb.Any {
-	if x != nil {
-		return x.Model
-	}
-	return nil
-}
-
-type TransferDatabaseEvent struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	DatabaseOperation DatabaseOperation      `protobuf:"varint,1,opt,name=database_operation,json=databaseOperation,proto3,enum=api.DatabaseOperation" json:"database_operation,omitempty"`
-	DatabaseModel     DatabaseModel          `protobuf:"varint,2,opt,name=database_model,json=databaseModel,proto3,enum=api.DatabaseModel" json:"database_model,omitempty"`
-	Model             *anypb.Any             `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
-	Done              bool                   `protobuf:"varint,4,opt,name=done,proto3" json:"done,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *TransferDatabaseEvent) Reset() {
-	*x = TransferDatabaseEvent{}
+func (x *DownstreamSyncRequest_DatabaseOp) Reset() {
+	*x = DownstreamSyncRequest_DatabaseOp{}
 	mi := &file_internal_api_internal_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TransferDatabaseEvent) String() string {
+func (x *DownstreamSyncRequest_DatabaseOp) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TransferDatabaseEvent) ProtoMessage() {}
+func (*DownstreamSyncRequest_DatabaseOp) ProtoMessage() {}
 
-func (x *TransferDatabaseEvent) ProtoReflect() protoreflect.Message {
+func (x *DownstreamSyncRequest_DatabaseOp) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_api_internal_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -268,71 +261,61 @@ func (x *TransferDatabaseEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TransferDatabaseEvent.ProtoReflect.Descriptor instead.
-func (*TransferDatabaseEvent) Descriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use DownstreamSyncRequest_DatabaseOp.ProtoReflect.Descriptor instead.
+func (*DownstreamSyncRequest_DatabaseOp) Descriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{0, 0}
 }
 
-func (x *TransferDatabaseEvent) GetDatabaseOperation() DatabaseOperation {
+func (x *DownstreamSyncRequest_DatabaseOp) GetOp() DownstreamSyncRequest_Op {
 	if x != nil {
-		return x.DatabaseOperation
+		return x.Op
 	}
-	return DatabaseOperation_SAVE
+	return DownstreamSyncRequest_OP_SAVE
 }
 
-func (x *TransferDatabaseEvent) GetDatabaseModel() DatabaseModel {
+func (x *DownstreamSyncRequest_DatabaseOp) GetTarget() DownstreamSyncRequest_Target {
 	if x != nil {
-		return x.DatabaseModel
+		return x.Target
 	}
-	return DatabaseModel_USER
+	return DownstreamSyncRequest_TARGET_USER
 }
 
-func (x *TransferDatabaseEvent) GetModel() *anypb.Any {
+func (x *DownstreamSyncRequest_DatabaseOp) GetData() *anypb.Any {
 	if x != nil {
-		return x.Model
+		return x.Data
 	}
 	return nil
-}
-
-func (x *TransferDatabaseEvent) GetDone() bool {
-	if x != nil {
-		return x.Done
-	}
-	return false
 }
 
 var File_internal_api_internal_proto protoreflect.FileDescriptor
 
 const file_internal_api_internal_proto_rawDesc = "" +
 	"\n" +
-	"\x1binternal/api/internal.proto\x12\x03api\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x9f\x01\n" +
+	"\x1binternal/api/internal.proto\x12\x03api\x1a\x19google/protobuf/any.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x92\x03\n" +
+	"\x15DownstreamSyncRequest\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\x04R\aversion\x12H\n" +
+	"\fdatabase_ops\x18\x02 \x03(\v2%.api.DownstreamSyncRequest.DatabaseOpR\vdatabaseOps\x1a\xa0\x01\n" +
+	"\n" +
+	"DatabaseOp\x12-\n" +
+	"\x02op\x18\x01 \x01(\x0e2\x1d.api.DownstreamSyncRequest.OpR\x02op\x129\n" +
+	"\x06target\x18\x02 \x01(\x0e2!.api.DownstreamSyncRequest.TargetR\x06target\x12(\n" +
+	"\x04data\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x04data\" \n" +
+	"\x02Op\x12\v\n" +
+	"\aOP_SAVE\x10\x00\x12\r\n" +
+	"\tOP_DELETE\x10\x01\"P\n" +
+	"\x06Target\x12\x0f\n" +
+	"\vTARGET_USER\x10\x00\x12\x10\n" +
+	"\fTARGET_TOPIC\x10\x01\x12\x12\n" +
+	"\x0eTARGET_MESSAGE\x10\x02\x12\x0f\n" +
+	"\vTARGET_LIKE\x10\x03\"\x9f\x01\n" +
 	"\rRewireRequest\x122\n" +
 	"\x12downstream_address\x18\x01 \x01(\tH\x00R\x11downstreamAddress\x88\x01\x01\x12.\n" +
 	"\x10upstream_address\x18\x02 \x01(\tH\x01R\x0fupstreamAddress\x88\x01\x01B\x15\n" +
 	"\x13_downstream_addressB\x13\n" +
-	"\x11_upstream_address\"\xcf\x01\n" +
-	"\x1fExecuteDatabaseOperationRequest\x12E\n" +
-	"\x12database_operation\x18\x01 \x01(\x0e2\x16.api.DatabaseOperationR\x11databaseOperation\x129\n" +
-	"\x0edatabase_model\x18\x02 \x01(\x0e2\x12.api.DatabaseModelR\rdatabaseModel\x12*\n" +
-	"\x05model\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05model\"\xd9\x01\n" +
-	"\x15TransferDatabaseEvent\x12E\n" +
-	"\x12database_operation\x18\x01 \x01(\x0e2\x16.api.DatabaseOperationR\x11databaseOperation\x129\n" +
-	"\x0edatabase_model\x18\x02 \x01(\x0e2\x12.api.DatabaseModelR\rdatabaseModel\x12*\n" +
-	"\x05model\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05model\x12\x12\n" +
-	"\x04done\x18\x04 \x01(\bR\x04done*)\n" +
-	"\x11DatabaseOperation\x12\b\n" +
-	"\x04SAVE\x10\x00\x12\n" +
-	"\n" +
-	"\x06DELETE\x10\x01*;\n" +
-	"\rDatabaseModel\x12\b\n" +
-	"\x04USER\x10\x00\x12\t\n" +
-	"\x05TOPIC\x10\x01\x12\v\n" +
-	"\aMESSAGE\x10\x02\x12\b\n" +
-	"\x04LIKE\x10\x032\xf7\x01\n" +
-	"\x1bInternalMessageBoardService\x124\n" +
-	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.Empty\x12X\n" +
-	"\x18ExecuteDatabaseOperation\x12$.api.ExecuteDatabaseOperationRequest\x1a\x16.google.protobuf.Empty\x12H\n" +
-	"\x10TransferDatabase\x12\x16.google.protobuf.Empty\x1a\x1a.api.TransferDatabaseEvent0\x01B\"Z razpravljalnica/internal/api;apib\x06proto3"
+	"\x11_upstream_address2\x99\x01\n" +
+	"\x1bInternalMessageBoardService\x12D\n" +
+	"\x0eDownstreamSync\x12\x1a.api.DownstreamSyncRequest\x1a\x16.google.protobuf.Empty\x124\n" +
+	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.EmptyB\"Z razpravljalnica/internal/api;apib\x06proto3"
 
 var (
 	file_internal_api_internal_proto_rawDescOnce sync.Once
@@ -349,32 +332,28 @@ func file_internal_api_internal_proto_rawDescGZIP() []byte {
 var file_internal_api_internal_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_internal_api_internal_proto_goTypes = []any{
-	(DatabaseOperation)(0),                  // 0: api.DatabaseOperation
-	(DatabaseModel)(0),                      // 1: api.DatabaseModel
-	(*RewireRequest)(nil),                   // 2: api.RewireRequest
-	(*ExecuteDatabaseOperationRequest)(nil), // 3: api.ExecuteDatabaseOperationRequest
-	(*TransferDatabaseEvent)(nil),           // 4: api.TransferDatabaseEvent
-	(*anypb.Any)(nil),                       // 5: google.protobuf.Any
-	(*emptypb.Empty)(nil),                   // 6: google.protobuf.Empty
+	(DownstreamSyncRequest_Op)(0),            // 0: api.DownstreamSyncRequest.Op
+	(DownstreamSyncRequest_Target)(0),        // 1: api.DownstreamSyncRequest.Target
+	(*DownstreamSyncRequest)(nil),            // 2: api.DownstreamSyncRequest
+	(*RewireRequest)(nil),                    // 3: api.RewireRequest
+	(*DownstreamSyncRequest_DatabaseOp)(nil), // 4: api.DownstreamSyncRequest.DatabaseOp
+	(*anypb.Any)(nil),                        // 5: google.protobuf.Any
+	(*emptypb.Empty)(nil),                    // 6: google.protobuf.Empty
 }
 var file_internal_api_internal_proto_depIdxs = []int32{
-	0, // 0: api.ExecuteDatabaseOperationRequest.database_operation:type_name -> api.DatabaseOperation
-	1, // 1: api.ExecuteDatabaseOperationRequest.database_model:type_name -> api.DatabaseModel
-	5, // 2: api.ExecuteDatabaseOperationRequest.model:type_name -> google.protobuf.Any
-	0, // 3: api.TransferDatabaseEvent.database_operation:type_name -> api.DatabaseOperation
-	1, // 4: api.TransferDatabaseEvent.database_model:type_name -> api.DatabaseModel
-	5, // 5: api.TransferDatabaseEvent.model:type_name -> google.protobuf.Any
-	2, // 6: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
-	3, // 7: api.InternalMessageBoardService.ExecuteDatabaseOperation:input_type -> api.ExecuteDatabaseOperationRequest
-	6, // 8: api.InternalMessageBoardService.TransferDatabase:input_type -> google.protobuf.Empty
-	6, // 9: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
-	6, // 10: api.InternalMessageBoardService.ExecuteDatabaseOperation:output_type -> google.protobuf.Empty
-	4, // 11: api.InternalMessageBoardService.TransferDatabase:output_type -> api.TransferDatabaseEvent
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 0: api.DownstreamSyncRequest.database_ops:type_name -> api.DownstreamSyncRequest.DatabaseOp
+	0, // 1: api.DownstreamSyncRequest.DatabaseOp.op:type_name -> api.DownstreamSyncRequest.Op
+	1, // 2: api.DownstreamSyncRequest.DatabaseOp.target:type_name -> api.DownstreamSyncRequest.Target
+	5, // 3: api.DownstreamSyncRequest.DatabaseOp.data:type_name -> google.protobuf.Any
+	2, // 4: api.InternalMessageBoardService.DownstreamSync:input_type -> api.DownstreamSyncRequest
+	3, // 5: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
+	6, // 6: api.InternalMessageBoardService.DownstreamSync:output_type -> google.protobuf.Empty
+	6, // 7: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_internal_api_internal_proto_init() }
@@ -382,7 +361,7 @@ func file_internal_api_internal_proto_init() {
 	if File_internal_api_internal_proto != nil {
 		return
 	}
-	file_internal_api_internal_proto_msgTypes[0].OneofWrappers = []any{}
+	file_internal_api_internal_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

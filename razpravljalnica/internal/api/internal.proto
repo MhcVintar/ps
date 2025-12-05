@@ -7,43 +7,46 @@ import "google/protobuf/empty.proto";
 
 option go_package = "razpravljalnica/internal/api;api";
 
-enum DatabaseOperation {
-  SAVE = 0;
-  DELETE = 1;
-}
-
-enum DatabaseModel {
-  USER = 0;
-  TOPIC = 1;
-  MESSAGE = 2;
-  LIKE = 3;
-}
-
 service InternalMessageBoardService {
+  // Sync downstream databases
+  rpc DownstreamSync(DownstreamSyncRequest) returns (google.protobuf.Empty);
+
   // Rewire the node's upstream and downstream nodes
   rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
-
-  // Request a database operation
-  rpc ExecuteDatabaseOperation(ExecuteDatabaseOperationRequest) returns (google.protobuf.Empty);
-
-  // Transfer database
-  rpc TransferDatabase(google.protobuf.Empty) returns (stream TransferDatabaseEvent);
 }
 
+// Upstream
+// Requests are forwarded from head to tail before any of the body nodes confirm anything. Confirmation only happens when the tail node successfully does the operation. Tail sends the expected response for the client back in the response. There are not retry mechanisms for upstream failure. Head should set a deadline for the request going upstream.
+
+// Downstream
+// Request is forwarded from tail to head before any of the intermediate nodes confirm anything. This is sent after the upstream request has been responded to. This is used to sync the databases. Head confirms that the synchronization happened. This should have a retry mechanism. The sync request should be versioned so that nodes don't apply the same operation twice if it is retried.
+
+message DownstreamSyncRequest {
+  enum Op {
+    OP_SAVE = 0;
+    OP_DELETE = 1;
+  }
+
+  enum Target {
+    TARGET_USER = 0;
+    TARGET_TOPIC = 1;
+    TARGET_MESSAGE = 2;
+    TARGET_LIKE = 3;
+  }
+
+  message DatabaseOp {
+    Op op = 1;
+    Target target = 2;
+    google.protobuf.Any data = 3;
+  }
+
+  // TODO add version tracking to databse
+  uint64 version = 1;
+  repeated DatabaseOp database_ops = 2;
+}
+
+// TODO If a field is missing, that means that there should be no connection. Also, before opening a new connection, check if it actually differs from the existing one.
 message RewireRequest {
   optional string downstream_address = 1;
   optional string upstream_address = 2;
-}
-
-message ExecuteDatabaseOperationRequest {
-  DatabaseOperation database_operation = 1;
-  DatabaseModel database_model = 2;
-  google.protobuf.Any model = 3;
-}
-
-message TransferDatabaseEvent {
-  DatabaseOperation database_operation = 1;
-  DatabaseModel database_model = 2;
-  google.protobuf.Any model = 3;
-  bool done = 4;
 }
