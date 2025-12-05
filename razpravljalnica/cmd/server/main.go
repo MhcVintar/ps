@@ -30,9 +30,10 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:    "control",
-				Aliases: []string{"c"},
-				Usage:   "Address of the control node",
+				Name:     "control",
+				Aliases:  []string{"c"},
+				Usage:    "Address of the control node",
+				Required: true,
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
