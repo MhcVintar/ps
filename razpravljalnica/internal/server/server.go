@@ -91,7 +91,7 @@ type ServerNode struct {
 	controlClient        *shared.ControlNodeClient
 	downstreamClient     *shared.ServerNodeClient
 	upstreamClient       *shared.ServerNodeClient
-	messageEventObserver *shared.Observer[api.MessageEvent]
+	messageEventObserver *shared.Observable[api.MessageEvent]
 }
 
 var _ api.InternalMessageBoardServiceServer = (*ServerNode)(nil)
@@ -103,7 +103,7 @@ func NewServerNode(id int, address, controlAddress string) (*ServerNode, error) 
 		address:              address,
 		grpcServer:           grpc.NewServer(),
 		healthServer:         health.NewServer(),
-		messageEventObserver: shared.NewObserver[api.MessageEvent](),
+		messageEventObserver: shared.NewObservable[api.MessageEvent](),
 	}
 
 	// Prepare database
