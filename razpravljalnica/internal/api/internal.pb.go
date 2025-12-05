@@ -188,27 +188,27 @@ func (x *WALEntry) GetData() []byte {
 	return nil
 }
 
-type GetWALEntriesRequest struct {
+type ApplyWALEntryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromId        int64                  `protobuf:"varint,1,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	Entry         *WALEntry              `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetWALEntriesRequest) Reset() {
-	*x = GetWALEntriesRequest{}
+func (x *ApplyWALEntryRequest) Reset() {
+	*x = ApplyWALEntryRequest{}
 	mi := &file_internal_api_internal_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetWALEntriesRequest) String() string {
+func (x *ApplyWALEntryRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetWALEntriesRequest) ProtoMessage() {}
+func (*ApplyWALEntryRequest) ProtoMessage() {}
 
-func (x *GetWALEntriesRequest) ProtoReflect() protoreflect.Message {
+func (x *ApplyWALEntryRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_api_internal_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -220,74 +220,31 @@ func (x *GetWALEntriesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetWALEntriesRequest.ProtoReflect.Descriptor instead.
-func (*GetWALEntriesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ApplyWALEntryRequest.ProtoReflect.Descriptor instead.
+func (*ApplyWALEntryRequest) Descriptor() ([]byte, []int) {
 	return file_internal_api_internal_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetWALEntriesRequest) GetFromId() int64 {
+func (x *ApplyWALEntryRequest) GetEntry() *WALEntry {
 	if x != nil {
-		return x.FromId
-	}
-	return 0
-}
-
-type GetWALEntriesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*WALEntry            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWALEntriesResponse) Reset() {
-	*x = GetWALEntriesResponse{}
-	mi := &file_internal_api_internal_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWALEntriesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWALEntriesResponse) ProtoMessage() {}
-
-func (x *GetWALEntriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_api_internal_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWALEntriesResponse.ProtoReflect.Descriptor instead.
-func (*GetWALEntriesResponse) Descriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GetWALEntriesResponse) GetEntries() []*WALEntry {
-	if x != nil {
-		return x.Entries
+		return x.Entry
 	}
 	return nil
 }
 
-// TODO If a field is missing, that means that there should be no connection. Also, before opening a new connection, check if it actually differs from the existing one.
 type RewireRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	DownstreamAddress *string                `protobuf:"bytes,1,opt,name=downstream_address,json=downstreamAddress,proto3,oneof" json:"downstream_address,omitempty"`
-	UpstreamAddress   *string                `protobuf:"bytes,2,opt,name=upstream_address,json=upstreamAddress,proto3,oneof" json:"upstream_address,omitempty"`
+	DownstreamId      *int64                 `protobuf:"varint,1,opt,name=downstream_id,json=downstreamId,proto3,oneof" json:"downstream_id,omitempty"`
+	DownstreamAddress *string                `protobuf:"bytes,2,opt,name=downstream_address,json=downstreamAddress,proto3,oneof" json:"downstream_address,omitempty"`
+	UpstreamId        *int64                 `protobuf:"varint,3,opt,name=upstream_id,json=upstreamId,proto3,oneof" json:"upstream_id,omitempty"`
+	UpstreamAddress   *string                `protobuf:"bytes,4,opt,name=upstream_address,json=upstreamAddress,proto3,oneof" json:"upstream_address,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RewireRequest) Reset() {
 	*x = RewireRequest{}
-	mi := &file_internal_api_internal_proto_msgTypes[3]
+	mi := &file_internal_api_internal_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +256,7 @@ func (x *RewireRequest) String() string {
 func (*RewireRequest) ProtoMessage() {}
 
 func (x *RewireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_api_internal_proto_msgTypes[3]
+	mi := &file_internal_api_internal_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,7 +269,14 @@ func (x *RewireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RewireRequest.ProtoReflect.Descriptor instead.
 func (*RewireRequest) Descriptor() ([]byte, []int) {
-	return file_internal_api_internal_proto_rawDescGZIP(), []int{3}
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RewireRequest) GetDownstreamId() int64 {
+	if x != nil && x.DownstreamId != nil {
+		return *x.DownstreamId
+	}
+	return 0
 }
 
 func (x *RewireRequest) GetDownstreamAddress() string {
@@ -320,6 +284,13 @@ func (x *RewireRequest) GetDownstreamAddress() string {
 		return *x.DownstreamAddress
 	}
 	return ""
+}
+
+func (x *RewireRequest) GetUpstreamId() int64 {
+	if x != nil && x.UpstreamId != nil {
+		return *x.UpstreamId
+	}
+	return 0
 }
 
 func (x *RewireRequest) GetUpstreamAddress() string {
@@ -346,18 +317,21 @@ const file_internal_api_internal_proto_rawDesc = "" +
 	"\vTARGET_USER\x10\x00\x12\x10\n" +
 	"\fTARGET_TOPIC\x10\x01\x12\x12\n" +
 	"\x0eTARGET_MESSAGE\x10\x02\x12\x0f\n" +
-	"\vTARGET_LIKE\x10\x03\"/\n" +
-	"\x14GetWALEntriesRequest\x12\x17\n" +
-	"\afrom_id\x18\x01 \x01(\x03R\x06fromId\"@\n" +
-	"\x15GetWALEntriesResponse\x12'\n" +
-	"\aentries\x18\x01 \x03(\v2\r.api.WALEntryR\aentries\"\x9f\x01\n" +
-	"\rRewireRequest\x122\n" +
-	"\x12downstream_address\x18\x01 \x01(\tH\x00R\x11downstreamAddress\x88\x01\x01\x12.\n" +
-	"\x10upstream_address\x18\x02 \x01(\tH\x01R\x0fupstreamAddress\x88\x01\x01B\x15\n" +
-	"\x13_downstream_addressB\x13\n" +
-	"\x11_upstream_address2\x9b\x01\n" +
-	"\x1bInternalMessageBoardService\x12F\n" +
-	"\rGetWALEntries\x12\x19.api.GetWALEntriesRequest\x1a\x1a.api.GetWALEntriesResponse\x124\n" +
+	"\vTARGET_LIKE\x10\x03\";\n" +
+	"\x14ApplyWALEntryRequest\x12#\n" +
+	"\x05entry\x18\x01 \x01(\v2\r.api.WALEntryR\x05entry\"\x91\x02\n" +
+	"\rRewireRequest\x12(\n" +
+	"\rdownstream_id\x18\x01 \x01(\x03H\x00R\fdownstreamId\x88\x01\x01\x122\n" +
+	"\x12downstream_address\x18\x02 \x01(\tH\x01R\x11downstreamAddress\x88\x01\x01\x12$\n" +
+	"\vupstream_id\x18\x03 \x01(\x03H\x02R\n" +
+	"upstreamId\x88\x01\x01\x12.\n" +
+	"\x10upstream_address\x18\x04 \x01(\tH\x03R\x0fupstreamAddress\x88\x01\x01B\x10\n" +
+	"\x0e_downstream_idB\x15\n" +
+	"\x13_downstream_addressB\x0e\n" +
+	"\f_upstream_idB\x13\n" +
+	"\x11_upstream_address2\x97\x01\n" +
+	"\x1bInternalMessageBoardService\x12B\n" +
+	"\rApplyWALEntry\x12\x19.api.ApplyWALEntryRequest\x1a\x16.google.protobuf.Empty\x124\n" +
 	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.EmptyB\"Z razpravljalnica/internal/api;apib\x06proto3"
 
 var (
@@ -373,24 +347,23 @@ func file_internal_api_internal_proto_rawDescGZIP() []byte {
 }
 
 var file_internal_api_internal_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_internal_api_internal_proto_goTypes = []any{
-	(WALEntry_Op)(0),              // 0: api.WALEntry.Op
-	(WALEntry_Target)(0),          // 1: api.WALEntry.Target
-	(*WALEntry)(nil),              // 2: api.WALEntry
-	(*GetWALEntriesRequest)(nil),  // 3: api.GetWALEntriesRequest
-	(*GetWALEntriesResponse)(nil), // 4: api.GetWALEntriesResponse
-	(*RewireRequest)(nil),         // 5: api.RewireRequest
-	(*emptypb.Empty)(nil),         // 6: google.protobuf.Empty
+	(WALEntry_Op)(0),             // 0: api.WALEntry.Op
+	(WALEntry_Target)(0),         // 1: api.WALEntry.Target
+	(*WALEntry)(nil),             // 2: api.WALEntry
+	(*ApplyWALEntryRequest)(nil), // 3: api.ApplyWALEntryRequest
+	(*RewireRequest)(nil),        // 4: api.RewireRequest
+	(*emptypb.Empty)(nil),        // 5: google.protobuf.Empty
 }
 var file_internal_api_internal_proto_depIdxs = []int32{
 	0, // 0: api.WALEntry.op:type_name -> api.WALEntry.Op
 	1, // 1: api.WALEntry.target:type_name -> api.WALEntry.Target
-	2, // 2: api.GetWALEntriesResponse.entries:type_name -> api.WALEntry
-	3, // 3: api.InternalMessageBoardService.GetWALEntries:input_type -> api.GetWALEntriesRequest
-	5, // 4: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
-	4, // 5: api.InternalMessageBoardService.GetWALEntries:output_type -> api.GetWALEntriesResponse
-	6, // 6: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
+	2, // 2: api.ApplyWALEntryRequest.entry:type_name -> api.WALEntry
+	3, // 3: api.InternalMessageBoardService.ApplyWALEntry:input_type -> api.ApplyWALEntryRequest
+	4, // 4: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
+	5, // 5: api.InternalMessageBoardService.ApplyWALEntry:output_type -> google.protobuf.Empty
+	5, // 6: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
 	5, // [5:7] is the sub-list for method output_type
 	3, // [3:5] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -403,14 +376,14 @@ func file_internal_api_internal_proto_init() {
 	if File_internal_api_internal_proto != nil {
 		return
 	}
-	file_internal_api_internal_proto_msgTypes[3].OneofWrappers = []any{}
+	file_internal_api_internal_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_api_internal_proto_rawDesc), len(file_internal_api_internal_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

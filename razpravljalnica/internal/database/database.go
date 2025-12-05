@@ -14,7 +14,8 @@ import (
 )
 
 type Database struct {
-	db *gorm.DB
+	db       *gorm.DB
+	walQueue chan *WALEntry
 }
 
 func NewDatabase() (*Database, error) {
@@ -37,11 +38,20 @@ func NewDatabase() (*Database, error) {
 	shared.Logger.Info("connected to database")
 
 	return &Database{
-		db: db,
+		db:       db,
+		walQueue: make(chan *WALEntry, 100),
 	}, nil
 }
 
-func (d *Database) Version() (int64, error) {
+func (d *Database) Close() {
+	close(d.walQueue)
+}
+
+func (d *Database) WALQueue() <-chan *WALEntry {
+	return d.walQueue
+}
+
+func (d *Database) LSN() (int64, error) {
 	var maxID int64
 	if err := d.db.Model(&WALEntry{}).Select("MAX(id)").Scan(&maxID).Error; err != nil {
 		return 0, err
@@ -64,6 +74,7 @@ func (d *Database) Save(ctx context.Context, value any) error {
 		if err := tx.Create(&walEntry).Error; err != nil {
 			return err
 		}
+		d.walQueue <- &walEntry
 
 		if err := tx.Save(value).Error; err != nil {
 			return err
@@ -88,6 +99,7 @@ func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
 		if err := tx.Create(&walEntry).Error; err != nil {
 			return err
 		}
+		d.walQueue <- &walEntry
 
 		if err := tx.Delete(value).Error; err != nil {
 			return err

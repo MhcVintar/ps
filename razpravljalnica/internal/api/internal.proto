@@ -26,23 +26,20 @@ message WALEntry {
 }
 
 service InternalMessageBoardService {
-  // Returns WAL entries from specified id onwards
-  rpc GetWALEntries(GetWALEntriesRequest) returns (GetWALEntriesResponse);
+  // Apply a WAL entry to the database
+  rpc ApplyWALEntry(ApplyWALEntryRequest) returns (google.protobuf.Empty);
 
   // Rewire the node's upstream and downstream nodes
   rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
 }
 
-message GetWALEntriesRequest {
-  int64 from_id = 1;
+message ApplyWALEntryRequest {
+  WALEntry entry = 1;
 }
 
-message GetWALEntriesResponse {
-  repeated WALEntry entries = 1;
-}
-
-// TODO If a field is missing, that means that there should be no connection. Also, before opening a new connection, check if it actually differs from the existing one.
 message RewireRequest {
-  optional string downstream_address = 1;
-  optional string upstream_address = 2;
+  optional int64 downstream_id = 1;
+  optional string downstream_address = 2;
+  optional int64 upstream_id = 3;
+  optional string upstream_address = 4;
 }

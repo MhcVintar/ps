@@ -20,7 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InternalMessageBoardService_GetWALEntries_FullMethodName = "/api.InternalMessageBoardService/GetWALEntries"
+	InternalMessageBoardService_ApplyWALEntry_FullMethodName = "/api.InternalMessageBoardService/ApplyWALEntry"
 	InternalMessageBoardService_Rewire_FullMethodName        = "/api.InternalMessageBoardService/Rewire"
 )
 
@@ -28,8 +28,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalMessageBoardServiceClient interface {
-	// Returns WAL entries from specified id onwards
-	GetWALEntries(ctx context.Context, in *GetWALEntriesRequest, opts ...grpc.CallOption) (*GetWALEntriesResponse, error)
+	// Apply a WAL entry to the database
+	ApplyWALEntry(ctx context.Context, in *ApplyWALEntryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Rewire the node's upstream and downstream nodes
 	Rewire(ctx context.Context, in *RewireRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -42,10 +42,10 @@ func NewInternalMessageBoardServiceClient(cc grpc.ClientConnInterface) InternalM
 	return &internalMessageBoardServiceClient{cc}
 }
 
-func (c *internalMessageBoardServiceClient) GetWALEntries(ctx context.Context, in *GetWALEntriesRequest, opts ...grpc.CallOption) (*GetWALEntriesResponse, error) {
+func (c *internalMessageBoardServiceClient) ApplyWALEntry(ctx context.Context, in *ApplyWALEntryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetWALEntriesResponse)
-	err := c.cc.Invoke(ctx, InternalMessageBoardService_GetWALEntries_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, InternalMessageBoardService_ApplyWALEntry_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +66,8 @@ func (c *internalMessageBoardServiceClient) Rewire(ctx context.Context, in *Rewi
 // All implementations must embed UnimplementedInternalMessageBoardServiceServer
 // for forward compatibility.
 type InternalMessageBoardServiceServer interface {
-	// Returns WAL entries from specified id onwards
-	GetWALEntries(context.Context, *GetWALEntriesRequest) (*GetWALEntriesResponse, error)
+	// Apply a WAL entry to the database
+	ApplyWALEntry(context.Context, *ApplyWALEntryRequest) (*emptypb.Empty, error)
 	// Rewire the node's upstream and downstream nodes
 	Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedInternalMessageBoardServiceServer()
@@ -80,8 +80,8 @@ type InternalMessageBoardServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInternalMessageBoardServiceServer struct{}
 
-func (UnimplementedInternalMessageBoardServiceServer) GetWALEntries(context.Context, *GetWALEntriesRequest) (*GetWALEntriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWALEntries not implemented")
+func (UnimplementedInternalMessageBoardServiceServer) ApplyWALEntry(context.Context, *ApplyWALEntryRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ApplyWALEntry not implemented")
 }
 func (UnimplementedInternalMessageBoardServiceServer) Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rewire not implemented")
@@ -108,20 +108,20 @@ func RegisterInternalMessageBoardServiceServer(s grpc.ServiceRegistrar, srv Inte
 	s.RegisterService(&InternalMessageBoardService_ServiceDesc, srv)
 }
 
-func _InternalMessageBoardService_GetWALEntries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetWALEntriesRequest)
+func _InternalMessageBoardService_ApplyWALEntry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyWALEntryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalMessageBoardServiceServer).GetWALEntries(ctx, in)
+		return srv.(InternalMessageBoardServiceServer).ApplyWALEntry(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InternalMessageBoardService_GetWALEntries_FullMethodName,
+		FullMethod: InternalMessageBoardService_ApplyWALEntry_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalMessageBoardServiceServer).GetWALEntries(ctx, req.(*GetWALEntriesRequest))
+		return srv.(InternalMessageBoardServiceServer).ApplyWALEntry(ctx, req.(*ApplyWALEntryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -152,8 +152,8 @@ var InternalMessageBoardService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalMessageBoardServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetWALEntries",
-			Handler:    _InternalMessageBoardService_GetWALEntries_Handler,
+			MethodName: "ApplyWALEntry",
+			Handler:    _InternalMessageBoardService_ApplyWALEntry_Handler,
 		},
 		{
 			MethodName: "Rewire",

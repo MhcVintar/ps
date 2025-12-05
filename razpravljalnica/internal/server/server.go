@@ -10,6 +10,7 @@ import (
 	"razpravljalnica/internal/database"
 	"razpravljalnica/internal/shared"
 	"syscall"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -62,18 +63,6 @@ func (s *ServerNode) SubscribeTopic(*api.SubscribeTopicRequest, grpc.ServerStrea
 
 // UpdateMessage implements api.MessageBoardServer.
 func (s *ServerNode) UpdateMessage(context.Context, *api.UpdateMessageRequest) (*api.Message, error) {
-	panic("unimplemented")
-}
-
-// ---
-
-// GetWALEntries implements api.InternalMessageBoardServiceServer.
-func (s *ServerNode) GetWALEntries(context.Context, *api.GetWALEntriesRequest) (*api.GetWALEntriesResponse, error) {
-	panic("unimplemented")
-}
-
-// Rewire implements api.InternalMessageBoardServiceServer.
-func (s *ServerNode) Rewire(context.Context, *api.RewireRequest) (*emptypb.Empty, error) {
 	panic("unimplemented")
 }
 
@@ -139,12 +128,18 @@ func (s *ServerNode) Run() error {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go s.consumeWALQueue(ctx)
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		sig := <-signalChan
 		shared.Logger.Info("received shutdown signal", "signal", sig.String())
+		cancel()
 		s.grpcServer.GracefulStop()
 
 		s.controlClient.Conn.Close()
@@ -166,10 +161,40 @@ func (s *ServerNode) Run() error {
 	return nil
 }
 
-func (s *ServerNode) IsHead() bool {
+func (s *ServerNode) isHead() bool {
 	return s.downstreamClient == nil
 }
 
-func (s *ServerNode) IsTail() bool {
+func (s *ServerNode) isTail() bool {
 	return s.upstreamClient == nil
+}
+
+func (s *ServerNode) consumeWALQueue(ctx context.Context) {
+	backoff := time.Millisecond * 100
+	maxBackoff := time.Second * 10
+
+	for {
+		select {
+		case <-ctx.Done():
+			shared.Logger.InfoContext(ctx, "stopping WAL consumer")
+			return
+
+		case entry := <-s.db.WALQueue():
+			req := api.ApplyWALEntryRequest{
+				Entry: database.ToApiWALEntry(entry),
+			}
+			if _, err := s.downstreamClient.Internal.ApplyWALEntry(ctx, &req); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed processing WAL entry", "err", err)
+
+				time.Sleep(backoff)
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+				continue
+			}
+
+			backoff = time.Millisecond * 100
+		}
+	}
 }

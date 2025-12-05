@@ -11,7 +11,7 @@ import (
 )
 
 func (s *ServerNode) CreateUser(ctx context.Context, req *api.CreateUserRequest) (*api.User, error) {
-	if !s.IsTail() {
+	if !s.isTail() {
 		return s.upstreamClient.Public.CreateUser(ctx, req)
 	}
 
