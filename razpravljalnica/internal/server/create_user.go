@@ -23,5 +23,7 @@ func (s *ServerNode) CreateUser(ctx context.Context, req *api.CreateUserRequest)
 		return nil, status.Errorf(codes.Internal, "failed to save user: %v", err)
 	}
 
+	shared.Logger.InfoContext(ctx, "created user", "user", userModel)
+
 	return database.ToApiUser(&userModel), nil
 }

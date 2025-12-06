@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -103,7 +105,7 @@ func NewServerNode(id int, address, control string) (*ServerNode, error) {
 	s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 
 	// Prepare control client
-	conn, err := grpc.NewClient(control)
+	conn, err := grpc.NewClient(control, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to open client connection to %q: %v", address, err)
 	}
@@ -170,9 +172,6 @@ func (s *ServerNode) isTail() bool {
 }
 
 func (s *ServerNode) consumeWALQueue(ctx context.Context) {
-	backoff := time.Millisecond * 100
-	maxBackoff := time.Second * 10
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -180,21 +179,39 @@ func (s *ServerNode) consumeWALQueue(ctx context.Context) {
 			return
 
 		case entry := <-s.db.WALQueue():
-			req := api.ApplyWALEntryRequest{
-				Entry: database.ToApiWALEntry(entry),
-			}
-			if _, err := s.downstreamClient.Internal.ApplyWALEntry(ctx, &req); err != nil {
-				shared.Logger.ErrorContext(ctx, "failed processing WAL entry", "err", err)
+			if !s.isHead() {
+				backoff := 100 * time.Millisecond
+				maxBackoff := 10 * time.Second
 
-				time.Sleep(backoff)
-				backoff *= 2
-				if backoff > maxBackoff {
-					backoff = maxBackoff
+				for {
+					req := api.ApplyWALEntryRequest{
+						Entry: database.ToApiWALEntry(entry),
+					}
+					_, err := s.downstreamClient.Internal.ApplyWALEntry(ctx, &req)
+					if err == nil {
+						shared.Logger.InfoContext(ctx, "WAL entry applied downstream")
+						break
+					}
+
+					shared.Logger.ErrorContext(ctx, "failed processing WAL entry", "error", err)
+
+					backoff = backoff * 2
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
+
+					jitter := time.Duration(rand.Int63n(int64(backoff / 2)))
+					sleep := backoff/2 + jitter
+
+					select {
+					case <-ctx.Done():
+						shared.Logger.InfoContext(ctx, "stopping WAL consumer")
+						return
+
+					case <-time.After(sleep):
+					}
 				}
-				continue
 			}
-
-			backoff = time.Millisecond * 100
 		}
 	}
 }

@@ -15,6 +15,7 @@ import (
 func (s *ServerNode) ApplyWALEntry(ctx context.Context, req *api.ApplyWALEntryRequest) (*emptypb.Empty, error) {
 	lsn, err := s.db.LSN()
 	if err != nil {
+		shared.Logger.ErrorContext(ctx, "failed to get LSN", "error", err)
 		return nil, status.Errorf(codes.Internal, "failed to get LSN: %v", err)
 	}
 
@@ -43,7 +44,14 @@ func (s *ServerNode) ApplyWALEntry(ctx context.Context, req *api.ApplyWALEntryRe
 		}
 
 		shared.Logger.InfoContext(ctx, "applied WAL", "lsn", lsn)
+	} else if lsn == req.Entry.Id {
+		shared.Logger.InfoContext(ctx, "database is already up to date")
+	} else {
+		shared.Logger.ErrorContext(ctx, "database is more than 1 WAL behind")
 	}
 
-	return s.downstreamClient.Internal.ApplyWALEntry(ctx, req)
+	if !s.isHead() {
+		return s.downstreamClient.Internal.ApplyWALEntry(ctx, req)
+	}
+	return &emptypb.Empty{}, nil
 }

@@ -17,6 +17,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
@@ -43,7 +44,7 @@ func NewControlNode(host string, port, nServerNodes int) (*ControlNode, error) {
 	serverClients := make([]*shared.ServerNodeClient, 0, nServerNodes)
 	for i := range nServerNodes {
 		address := fmt.Sprintf("%v:%v", host, port+i+1)
-		conn, err := grpc.NewClient(address)
+		conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 		if err != nil {
 			for _, client := range serverClients {

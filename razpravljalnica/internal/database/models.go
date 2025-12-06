@@ -12,6 +12,10 @@ type WALEntry struct {
 	Data   []byte              `gorm:"type:blob;not null" json:"data"`
 }
 
+func (*WALEntry) TableName() string {
+	return "wal_entries"
+}
+
 type User struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name string `gorm:"type:varchar(255);not null" json:"name"`

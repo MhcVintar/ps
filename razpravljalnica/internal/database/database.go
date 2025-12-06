@@ -19,7 +19,7 @@ type Database struct {
 }
 
 func NewDatabase() (*Database, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+	db, err := gorm.Open(sqlite.Open("file:razpravljalnica?mode=memory&cache=shared"), &gorm.Config{
 		Logger: logger.NewSlogLogger(shared.Logger, logger.Config{}),
 	})
 	if err != nil {
@@ -27,6 +27,7 @@ func NewDatabase() (*Database, error) {
 	}
 
 	if err := db.AutoMigrate(
+		&WALEntry{},
 		&User{},
 		&Topic{},
 		&Message{},
@@ -53,7 +54,10 @@ func (d *Database) WALQueue() <-chan *WALEntry {
 
 func (d *Database) LSN() (int64, error) {
 	var maxID int64
-	if err := d.db.Model(&WALEntry{}).Select("MAX(id)").Scan(&maxID).Error; err != nil {
+	err := d.db.Model(&WALEntry{}).
+		Select("COALESCE(MAX(id), 0)").
+		Scan(&maxID).Error
+	if err != nil {
 		return 0, err
 	}
 	return maxID, nil
