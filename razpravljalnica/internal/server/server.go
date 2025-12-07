@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -198,6 +197,7 @@ func (s *ServerNode) isTail() bool {
 
 func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 	if s.downstreamClient == nil {
+		shared.Logger.InfoContext(ctx, "skipping tail handoff")
 		s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 		return nil
 	}
@@ -209,9 +209,6 @@ func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 
 	for {
 		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
 		if err != nil {
 			shared.Logger.ErrorContext(ctx, "failed to receive from stream")
 			return err
@@ -244,13 +241,13 @@ func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 				shared.Logger.ErrorContext(ctx, "failed to close send stream")
 				return err
 			}
+
+			shared.Logger.InfoContext(ctx, "handled tail handoff")
+			s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
 			return nil
 		}
 	}
-
-	s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
-
-	return nil
 }
 
 func (s *ServerNode) consumeWALQueue(ctx context.Context) {

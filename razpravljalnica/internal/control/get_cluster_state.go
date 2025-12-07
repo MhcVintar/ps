@@ -25,7 +25,7 @@ func (c *ControlNode) GetClusterState(ctx context.Context, _ *emptypb.Empty) (*a
 		},
 		Tail: &api.NodeInfo{
 			NodeId:  strconv.Itoa(tail.Id),
-			Address: head.Conn.Target(),
+			Address: tail.Conn.Target(),
 		},
 	}, nil
 }

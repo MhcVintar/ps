@@ -115,8 +115,16 @@ func (d *Database) YieldWAL(ctx context.Context, fromLSN int64) <-chan *WALEntry
 }
 
 func (d *Database) Save(ctx context.Context, value any) error {
+	return d.save(ctx, true, value)
+}
+
+func (d *Database) SaveWithoutWALNotify(ctx context.Context, value any) error {
+	return d.save(ctx, false, value)
+}
+
+func (d *Database) save(ctx context.Context, walNotify bool, value any) error {
 	d.freezeLock.RLock()
-	defer d.freezeLock.Unlock()
+	defer d.freezeLock.RUnlock()
 
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -132,7 +140,10 @@ func (d *Database) Save(ctx context.Context, value any) error {
 		if err := tx.Create(&walEntry).Error; err != nil {
 			return err
 		}
-		d.walQueue <- &walEntry
+
+		if walNotify {
+			d.walQueue <- &walEntry
+		}
 
 		if err := tx.Save(value).Error; err != nil {
 			return err
@@ -143,8 +154,16 @@ func (d *Database) Save(ctx context.Context, value any) error {
 }
 
 func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
+	return d.delete(ctx, true, value, conds...)
+}
+
+func (d *Database) DeleteWithoutWALNotify(ctx context.Context, value any, conds ...any) error {
+	return d.delete(ctx, false, value, conds...)
+}
+
+func (d *Database) delete(ctx context.Context, walNotify bool, value any, conds ...any) error {
 	d.freezeLock.RLock()
-	defer d.freezeLock.Unlock()
+	defer d.freezeLock.RUnlock()
 
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -160,7 +179,10 @@ func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
 		if err := tx.Create(&walEntry).Error; err != nil {
 			return err
 		}
-		d.walQueue <- &walEntry
+
+		if walNotify {
+			d.walQueue <- &walEntry
+		}
 
 		if err := tx.Delete(value).Error; err != nil {
 			return err

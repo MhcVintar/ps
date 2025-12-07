@@ -54,9 +54,9 @@ func (s *ServerNode) applyWAL(ctx context.Context, entry *api.WALEntry) error {
 
 	switch entry.Op {
 	case api.WALEntry_OP_SAVE:
-		s.db.Save(ctx, target)
+		s.db.SaveWithoutWALNotify(ctx, target)
 	case api.WALEntry_OP_DELETE:
-		s.db.Delete(ctx, target)
+		s.db.DeleteWithoutWALNotify(ctx, target)
 	}
 
 	shared.Logger.InfoContext(ctx, "applied WAL", "lsn", entry.Id)
