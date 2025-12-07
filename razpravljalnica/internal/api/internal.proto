@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "razpravljalnica/internal/api;api";
+
+message WALEntry {
+  enum Op {
+    OP_SAVE = 0;
+    OP_DELETE = 1;
+  }
+
+  enum Target {
+    TARGET_USER = 0;
+    TARGET_TOPIC = 1;
+    TARGET_MESSAGE = 2;
+    TARGET_LIKE = 3;
+  }
+
+  int64 id = 1;
+  Op op = 2;
+  Target target = 3;
+  bytes data = 4;
+}
+
+service InternalMessageBoardService {
+  // Apply a WAL entry to the database
+  rpc ApplyWALEntry(ApplyWALEntryRequest) returns (google.protobuf.Empty);
+
+  // Rewire the node's upstream and downstream nodes
+  rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
+
+  // Stream database state and handoff tail duties
+  rpc TailHandoff(stream TailHandoffRequest) returns (stream TailHandoffResponse);
+}
+
+message TailHandoffRequest {
+  RewireRequest rewire_request = 1;
+}
+
+message TailHandoffResponse {
+  oneof message {
+    WALEntry entry = 1;
+    bool handoff = 2;
+  }
+}
+
+message ApplyWALEntryRequest {
+  WALEntry entry = 1;
+}
+
+message RewireRequest {
+  optional int64 downstream_id = 1;
+  optional string downstream_address = 2;
+  optional int64 upstream_id = 3;
+  optional string upstream_address = 4;
+}

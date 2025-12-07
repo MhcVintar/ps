@@ -1,34 +1,19 @@
-package shared
+package database
 
 import (
-	"fmt"
+	"razpravljalnica/internal/api"
 	"time"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func NewDatabase() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		Logger: logger.NewSlogLogger(Logger, logger.Config{}),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect database: %w", err)
-	}
+type WALEntry struct {
+	ID     int64               `gorm:"primaryKey;autoIncrement" json:"id"`
+	Op     api.WALEntry_Op     `gorm:"not null" json:"op"`
+	Target api.WALEntry_Target `gorm:"not null" json:"target"`
+	Data   []byte              `gorm:"type:blob;not null" json:"data"`
+}
 
-	if err := db.AutoMigrate(
-		&User{},
-		&Topic{},
-		&Message{},
-		&Like{},
-	); err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %w", err)
-	}
-
-	Logger.Info("connected to database")
-
-	return db, nil
+func (*WALEntry) TableName() string {
+	return "wal_entries"
 }
 
 type User struct {

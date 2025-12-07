@@ -12,3 +12,7 @@ func init() {
 		Level: slog.LevelInfo,
 	}))
 }
+
+func AnyPtr[T any](value T) *T {
+	return &value
+}
