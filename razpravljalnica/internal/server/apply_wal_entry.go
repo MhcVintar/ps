@@ -20,30 +20,9 @@ func (s *ServerNode) ApplyWALEntry(ctx context.Context, req *api.ApplyWALEntryRe
 	}
 
 	if lsn+1 == req.Entry.Id {
-		var target any
-		switch req.Entry.Target {
-		case api.WALEntry_TARGET_USER:
-			target = &database.User{}
-		case api.WALEntry_TARGET_TOPIC:
-			target = &database.Topic{}
-		case api.WALEntry_TARGET_MESSAGE:
-			target = &database.Message{}
-		case api.WALEntry_TARGET_LIKE:
-			target = &database.Like{}
+		if err := s.applyWAL(ctx, req.Entry); err != nil {
+			return nil, err
 		}
-
-		if err := json.Unmarshal(req.Entry.Data, target); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to apply WAL: %v", err)
-		}
-
-		switch req.Entry.Op {
-		case api.WALEntry_OP_SAVE:
-			s.db.Save(ctx, target)
-		case api.WALEntry_OP_DELETE:
-			s.db.Delete(ctx, target)
-		}
-
-		shared.Logger.InfoContext(ctx, "applied WAL", "lsn", lsn)
 	} else if lsn == req.Entry.Id {
 		shared.Logger.InfoContext(ctx, "database is already up to date")
 	} else {
@@ -54,4 +33,32 @@ func (s *ServerNode) ApplyWALEntry(ctx context.Context, req *api.ApplyWALEntryRe
 		return s.downstreamClient.Internal.ApplyWALEntry(ctx, req)
 	}
 	return &emptypb.Empty{}, nil
+}
+
+func (s *ServerNode) applyWAL(ctx context.Context, entry *api.WALEntry) error {
+	var target any
+	switch entry.Target {
+	case api.WALEntry_TARGET_USER:
+		target = &database.User{}
+	case api.WALEntry_TARGET_TOPIC:
+		target = &database.Topic{}
+	case api.WALEntry_TARGET_MESSAGE:
+		target = &database.Message{}
+	case api.WALEntry_TARGET_LIKE:
+		target = &database.Like{}
+	}
+
+	if err := json.Unmarshal(entry.Data, target); err != nil {
+		return status.Errorf(codes.Internal, "failed to apply WAL: %v", err)
+	}
+
+	switch entry.Op {
+	case api.WALEntry_OP_SAVE:
+		s.db.Save(ctx, target)
+	case api.WALEntry_OP_DELETE:
+		s.db.Delete(ctx, target)
+	}
+
+	shared.Logger.InfoContext(ctx, "applied WAL", "lsn", entry.Id)
+	return nil
 }

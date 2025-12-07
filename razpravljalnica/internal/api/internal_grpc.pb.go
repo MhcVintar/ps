@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	InternalMessageBoardService_ApplyWALEntry_FullMethodName = "/api.InternalMessageBoardService/ApplyWALEntry"
 	InternalMessageBoardService_Rewire_FullMethodName        = "/api.InternalMessageBoardService/Rewire"
+	InternalMessageBoardService_TailHandoff_FullMethodName   = "/api.InternalMessageBoardService/TailHandoff"
 )
 
 // InternalMessageBoardServiceClient is the client API for InternalMessageBoardService service.
@@ -32,6 +33,8 @@ type InternalMessageBoardServiceClient interface {
 	ApplyWALEntry(ctx context.Context, in *ApplyWALEntryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Rewire the node's upstream and downstream nodes
 	Rewire(ctx context.Context, in *RewireRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Stream database state and handoff tail duties
+	TailHandoff(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TailHandoffRequest, TailHandoffResponse], error)
 }
 
 type internalMessageBoardServiceClient struct {
@@ -62,6 +65,19 @@ func (c *internalMessageBoardServiceClient) Rewire(ctx context.Context, in *Rewi
 	return out, nil
 }
 
+func (c *internalMessageBoardServiceClient) TailHandoff(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TailHandoffRequest, TailHandoffResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &InternalMessageBoardService_ServiceDesc.Streams[0], InternalMessageBoardService_TailHandoff_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[TailHandoffRequest, TailHandoffResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalMessageBoardService_TailHandoffClient = grpc.BidiStreamingClient[TailHandoffRequest, TailHandoffResponse]
+
 // InternalMessageBoardServiceServer is the server API for InternalMessageBoardService service.
 // All implementations must embed UnimplementedInternalMessageBoardServiceServer
 // for forward compatibility.
@@ -70,6 +86,8 @@ type InternalMessageBoardServiceServer interface {
 	ApplyWALEntry(context.Context, *ApplyWALEntryRequest) (*emptypb.Empty, error)
 	// Rewire the node's upstream and downstream nodes
 	Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error)
+	// Stream database state and handoff tail duties
+	TailHandoff(grpc.BidiStreamingServer[TailHandoffRequest, TailHandoffResponse]) error
 	mustEmbedUnimplementedInternalMessageBoardServiceServer()
 }
 
@@ -85,6 +103,9 @@ func (UnimplementedInternalMessageBoardServiceServer) ApplyWALEntry(context.Cont
 }
 func (UnimplementedInternalMessageBoardServiceServer) Rewire(context.Context, *RewireRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rewire not implemented")
+}
+func (UnimplementedInternalMessageBoardServiceServer) TailHandoff(grpc.BidiStreamingServer[TailHandoffRequest, TailHandoffResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method TailHandoff not implemented")
 }
 func (UnimplementedInternalMessageBoardServiceServer) mustEmbedUnimplementedInternalMessageBoardServiceServer() {
 }
@@ -144,6 +165,13 @@ func _InternalMessageBoardService_Rewire_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InternalMessageBoardService_TailHandoff_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(InternalMessageBoardServiceServer).TailHandoff(&grpc.GenericServerStream[TailHandoffRequest, TailHandoffResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalMessageBoardService_TailHandoffServer = grpc.BidiStreamingServer[TailHandoffRequest, TailHandoffResponse]
+
 // InternalMessageBoardService_ServiceDesc is the grpc.ServiceDesc for InternalMessageBoardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +188,13 @@ var InternalMessageBoardService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _InternalMessageBoardService_Rewire_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "TailHandoff",
+			Handler:       _InternalMessageBoardService_TailHandoff_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "internal/api/internal.proto",
 }

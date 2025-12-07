@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/database"
 	"razpravljalnica/internal/shared"
+	"sync"
 	"syscall"
 	"time"
 
@@ -80,12 +82,13 @@ type ServerNode struct {
 	downstreamClient     *shared.ServerNodeClient
 	upstreamClient       *shared.ServerNodeClient
 	messageEventObserver *shared.Observable[api.MessageEvent]
+	shutdownOnce         sync.Once
 }
 
 var _ api.InternalMessageBoardServiceServer = (*ServerNode)(nil)
 var _ api.MessageBoardServer = (*ServerNode)(nil)
 
-func NewServerNode(id int, address, control string) (*ServerNode, error) {
+func NewServerNode(id int, address, control string, downstreamID *int64, downstreamAddress *string) (*ServerNode, error) {
 	s := ServerNode{
 		id:                   id,
 		address:              address,
@@ -113,13 +116,22 @@ func NewServerNode(id int, address, control string) (*ServerNode, error) {
 		Conn: conn,
 	}
 
+	// Prepare downstream
+	if downstreamID != nil && downstreamAddress != nil {
+		if _, err := s.Rewire(context.Background(), &api.RewireRequest{
+			DownstreamId:      downstreamID,
+			DownstreamAddress: downstreamAddress,
+		}); err != nil {
+			s.controlClient.Conn.Close()
+			return nil, err
+		}
+	}
+
 	// Register gRPC service
 	api.RegisterInternalMessageBoardServiceServer(s.grpcServer, &s)
 	api.RegisterMessageBoardServer(s.grpcServer, &s)
 	grpc_health_v1.RegisterHealthServer(s.grpcServer, s.healthServer)
 	reflection.Register(s.grpcServer)
-
-	// TODO Sync database
 
 	return &s, nil
 }
@@ -133,6 +145,12 @@ func (s *ServerNode) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	go func() {
+		if err := s.handleTailHandoff(ctx); err != nil {
+			s.shutdown(ctx, cancel, "tail handoff failed: "+err.Error())
+		}
+	}()
+
 	go s.consumeWALQueue(ctx)
 
 	signalChan := make(chan os.Signal, 1)
@@ -140,17 +158,7 @@ func (s *ServerNode) Run() error {
 
 	go func() {
 		sig := <-signalChan
-		shared.Logger.Info("received shutdown signal", "signal", sig.String())
-		cancel()
-		s.grpcServer.GracefulStop()
-
-		s.controlClient.Conn.Close()
-		if s.downstreamClient != nil {
-			s.downstreamClient.Conn.Close()
-		}
-		if s.upstreamClient != nil {
-			s.upstreamClient.Conn.Close()
-		}
+		s.shutdown(ctx, cancel, "received shutdown signal "+sig.String())
 	}()
 
 	shared.Logger.Info("server running", "address", s.address)
@@ -163,12 +171,86 @@ func (s *ServerNode) Run() error {
 	return nil
 }
 
+func (s *ServerNode) shutdown(ctx context.Context, cancel context.CancelFunc, reason string) {
+	s.shutdownOnce.Do(func() {
+		shared.Logger.InfoContext(ctx, "shutting down server", "reason", reason)
+
+		cancel()
+		s.grpcServer.GracefulStop()
+
+		s.controlClient.Conn.Close()
+		if s.downstreamClient != nil {
+			s.downstreamClient.Conn.Close()
+		}
+		if s.upstreamClient != nil {
+			s.upstreamClient.Conn.Close()
+		}
+	})
+}
+
 func (s *ServerNode) isHead() bool {
 	return s.downstreamClient == nil
 }
 
 func (s *ServerNode) isTail() bool {
 	return s.upstreamClient == nil
+}
+
+func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
+	if s.downstreamClient == nil {
+		s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+		return nil
+	}
+
+	stream, err := s.downstreamClient.Internal.TailHandoff(ctx)
+	if err != nil {
+		shared.Logger.ErrorContext(ctx, "failed to create TailHandoff stream")
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			shared.Logger.ErrorContext(ctx, "failed to receive from stream")
+			return err
+		}
+
+		switch msg := resp.Message.(type) {
+		case *api.TailHandoffResponse_Entry:
+			if err := s.applyWAL(ctx, msg.Entry); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to apply WAL entry")
+				return err
+			}
+
+			if err := stream.Send(&api.TailHandoffRequest{}); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to send ACK")
+				return err
+			}
+
+		case *api.TailHandoffResponse_Handoff:
+			if err := stream.Send(&api.TailHandoffRequest{
+				RewireRequest: &api.RewireRequest{
+					UpstreamId:      shared.AnyPtr(int64(s.id)),
+					UpstreamAddress: &s.address,
+				},
+			}); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to send rewire request")
+				return err
+			}
+
+			if err := stream.CloseSend(); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to close send stream")
+				return err
+			}
+			return nil
+		}
+	}
+
+	s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	return nil
 }
 
 func (s *ServerNode) consumeWALQueue(ctx context.Context) {

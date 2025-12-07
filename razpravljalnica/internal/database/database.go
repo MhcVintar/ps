@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
+	"sync"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -14,8 +15,9 @@ import (
 )
 
 type Database struct {
-	db       *gorm.DB
-	walQueue chan *WALEntry
+	db         *gorm.DB
+	walQueue   chan *WALEntry
+	freezeLock sync.RWMutex
 }
 
 func NewDatabase() (*Database, error) {
@@ -48,6 +50,14 @@ func (d *Database) Close() {
 	close(d.walQueue)
 }
 
+func (d *Database) Freeze() {
+	d.freezeLock.Lock()
+}
+
+func (d *Database) Unfreeze() {
+	d.freezeLock.Unlock()
+}
+
 func (d *Database) WALQueue() <-chan *WALEntry {
 	return d.walQueue
 }
@@ -63,7 +73,51 @@ func (d *Database) LSN() (int64, error) {
 	return maxID, nil
 }
 
+func (d *Database) YieldWAL(ctx context.Context, fromLSN int64) <-chan *WALEntry {
+	out := make(chan *WALEntry, 100)
+
+	go func() {
+		defer close(out)
+
+		rows, err := d.db.WithContext(ctx).
+			Model(&WALEntry{}).
+			Where("id >= ?", fromLSN).
+			Order("id ASC").
+			Rows()
+		if err != nil {
+			shared.Logger.Error("failed to stream WAL entries", "err", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			var entry WALEntry
+			if err := d.db.ScanRows(rows, &entry); err != nil {
+				shared.Logger.Error("failed to scan WAL row", "err", err)
+				return
+			}
+
+			select {
+			case out <- &entry:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out
+}
+
 func (d *Database) Save(ctx context.Context, value any) error {
+	d.freezeLock.RLock()
+	defer d.freezeLock.Unlock()
+
 	data, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -89,6 +143,9 @@ func (d *Database) Save(ctx context.Context, value any) error {
 }
 
 func (d *Database) Delete(ctx context.Context, value any, conds ...any) error {
+	d.freezeLock.RLock()
+	defer d.freezeLock.Unlock()
+
 	data, err := json.Marshal(value)
 	if err != nil {
 		return err

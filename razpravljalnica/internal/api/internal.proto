@@ -31,6 +31,20 @@ service InternalMessageBoardService {
 
   // Rewire the node's upstream and downstream nodes
   rpc Rewire(RewireRequest) returns (google.protobuf.Empty);
+
+  // Stream database state and handoff tail duties
+  rpc TailHandoff(stream TailHandoffRequest) returns (stream TailHandoffResponse);
+}
+
+message TailHandoffRequest {
+  RewireRequest rewire_request = 1;
+}
+
+message TailHandoffResponse {
+  oneof message {
+    WALEntry entry = 1;
+    bool handoff = 2;
+  }
 }
 
 message ApplyWALEntryRequest {
