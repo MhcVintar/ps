@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package protobufStorage;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "/protobufStorage";
+
+message Todo {
+  string Task = 1;
+  bool Completed = 2;
+}
+
+message TodoStorage {
+  repeated Todo todos = 1;
+}
+
+message TodoEvent {
+  Todo T = 1;
+  string Action = 2;
+}
+
+service CRUD {
+  rpc Create(Todo) returns (google.protobuf.Empty);
+  rpc Read(Todo) returns (TodoStorage);
+  rpc Update(Todo) returns (google.protobuf.Empty);
+  rpc Delete(Todo) returns (google.protobuf.Empty);
+  rpc Subscribe(google.protobuf.Empty) returns (stream TodoEvent);
+}
