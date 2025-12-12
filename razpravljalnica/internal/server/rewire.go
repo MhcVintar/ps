@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+// TODO add number of alive nodes as a parameter so that  subscriptions can be distributed based on that. With this change, we can omit control connection from the chain.
 func (s *ServerNode) Rewire(ctx context.Context, req *api.RewireRequest) (*emptypb.Empty, error) {
 	newDownstream := s.downstreamClient
 	if req.DownstreamAddress == nil {

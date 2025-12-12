@@ -208,8 +208,8 @@ func getTarget(value any) api.WALEntry_Target {
 	return target
 }
 
-func (d *Database) FindUserByID(ctx context.Context, id int64) (user *User, err error) {
-	if err := d.db.First(&user, id).Error; err != nil {
+func (d *Database) FindUserByID(id int64) (user *User, err error) {
+	if err := d.db.First(user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -220,8 +220,8 @@ func (d *Database) FindUserByID(ctx context.Context, id int64) (user *User, err 
 	return user, nil
 }
 
-func (d *Database) FindTopicByID(ctx context.Context, id int64) (topic *Topic, err error) {
-	if err := d.db.First(&topic, id).Error; err != nil {
+func (d *Database) FindTopicByID(id int64) (topic *Topic, err error) {
+	if err := d.db.First(topic, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -230,4 +230,46 @@ func (d *Database) FindTopicByID(ctx context.Context, id int64) (topic *Topic, e
 	}
 
 	return topic, nil
+}
+
+func (d *Database) FindAllTopics() (topics []Topic, err error) {
+	if err := d.db.Find(&topics).Error; err != nil {
+		return nil, err
+	}
+
+	return topics, nil
+}
+
+func (d *Database) FindMessageByID(id int64) (message *Message, err error) {
+	if err := d.db.First(message, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return message, nil
+}
+
+func (d *Database) FindAllMessages(fromMessageID, topicID int64, limit int) (messages []Message, err error) {
+	if err := d.db.
+		Where("id >= ? AND topic_id = ?", fromMessageID, topicID).
+		Order("id ASC").
+		Limit(limit).
+		Find(&messages).Error; err != nil {
+		return nil, err
+	}
+	return messages, nil
+}
+
+func (d *Database) HasUserLikedMessage(userID, messageID int64) (bool, error) {
+	var like Like
+	if err := d.db.Where("user_id = ? AND message_id = ?", userID, messageID).First(&like).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

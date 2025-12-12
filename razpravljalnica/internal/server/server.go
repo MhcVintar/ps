@@ -21,51 +21,15 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
-
-// CreateTopic implements api.MessageBoardServer.
-func (s *ServerNode) CreateTopic(context.Context, *api.CreateTopicRequest) (*api.Topic, error) {
-	panic("unimplemented")
-}
-
-// DeleteMessage implements api.MessageBoardServer.
-func (s *ServerNode) DeleteMessage(context.Context, *api.DeleteMessageRequest) (*emptypb.Empty, error) {
-	panic("unimplemented")
-}
-
-// GetMessages implements api.MessageBoardServer.
-func (s *ServerNode) GetMessages(context.Context, *api.GetMessagesRequest) (*api.GetMessagesResponse, error) {
-	panic("unimplemented")
-}
 
 // GetSubscriptionNode implements api.MessageBoardServer.
 func (s *ServerNode) GetSubscriptionNode(context.Context, *api.SubscriptionNodeRequest) (*api.SubscriptionNodeResponse, error) {
 	panic("unimplemented")
 }
 
-// LikeMessage implements api.MessageBoardServer.
-func (s *ServerNode) LikeMessage(context.Context, *api.LikeMessageRequest) (*api.Message, error) {
-	panic("unimplemented")
-}
-
-// ListTopics implements api.MessageBoardServer.
-func (s *ServerNode) ListTopics(context.Context, *emptypb.Empty) (*api.ListTopicsResponse, error) {
-	panic("unimplemented")
-}
-
-// PostMessage implements api.MessageBoardServer.
-func (s *ServerNode) PostMessage(context.Context, *api.PostMessageRequest) (*api.Message, error) {
-	panic("unimplemented")
-}
-
 // SubscribeTopic implements api.MessageBoardServer.
 func (s *ServerNode) SubscribeTopic(*api.SubscribeTopicRequest, grpc.ServerStreamingServer[api.MessageEvent]) error {
-	panic("unimplemented")
-}
-
-// UpdateMessage implements api.MessageBoardServer.
-func (s *ServerNode) UpdateMessage(context.Context, *api.UpdateMessageRequest) (*api.Message, error) {
 	panic("unimplemented")
 }
 
