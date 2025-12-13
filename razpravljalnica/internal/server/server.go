@@ -23,11 +23,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// SubscribeTopic implements api.MessageBoardServer.
-func (s *ServerNode) SubscribeTopic(*api.SubscribeTopicRequest, grpc.ServerStreamingServer[api.MessageEvent]) error {
-	panic("unimplemented")
-}
-
 type ServerNode struct {
 	api.UnimplementedInternalMessageBoardServiceServer
 	api.UnimplementedMessageBoardServer
@@ -40,7 +35,7 @@ type ServerNode struct {
 	downstreamClient     *shared.ServerNodeClient
 	upstreamClient       *shared.ServerNodeClient
 	upstreamCount        int32
-	messageEventObserver *shared.Observable[api.MessageEvent]
+	messageEventObserver *shared.Observer[api.MessageEvent]
 	shutdownOnce         sync.Once
 }
 
@@ -53,7 +48,7 @@ func NewServerNode(id int, address, control string, downstreamID *int64, downstr
 		address:              address,
 		grpcServer:           grpc.NewServer(),
 		healthServer:         health.NewServer(),
-		messageEventObserver: shared.NewObservable[api.MessageEvent](),
+		messageEventObserver: shared.NewObserver[api.MessageEvent](),
 		upstreamCount:        0,
 	}
 

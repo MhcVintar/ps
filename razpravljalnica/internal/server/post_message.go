@@ -8,11 +8,21 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *ServerNode) PostMessage(ctx context.Context, req *api.PostMessageRequest) (*api.Message, error) {
 	if !s.isTail() {
-		return s.upstreamClient.Public.PostMessage(ctx, req)
+		message, err := s.upstreamClient.Public.PostMessage(ctx, req)
+		if err == nil {
+			s.messageEventObserver.Notify(ctx, req.TopicId, &api.MessageEvent{
+				EventAt: timestamppb.Now(),
+				Op:      api.OpType_OP_POST,
+				Message: message,
+			})
+		}
+
+		return message, err
 	}
 
 	user, err := s.db.FindUserByID(req.UserId)

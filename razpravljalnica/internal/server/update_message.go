@@ -8,11 +8,21 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *ServerNode) UpdateMessage(ctx context.Context, req *api.UpdateMessageRequest) (*api.Message, error) {
 	if !s.isTail() {
-		return s.upstreamClient.Public.UpdateMessage(ctx, req)
+		message, err := s.upstreamClient.Public.UpdateMessage(ctx, req)
+		if err == nil {
+			s.messageEventObserver.Notify(ctx, req.TopicId, &api.MessageEvent{
+				EventAt: timestamppb.Now(),
+				Op:      api.OpType_OP_UPDATE,
+				Message: message,
+			})
+		}
+
+		return message, err
 	}
 
 	message, err := s.db.FindMessageByID(req.MessageId)

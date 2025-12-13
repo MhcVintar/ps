@@ -6,20 +6,20 @@ import (
 	"time"
 )
 
-type Observable[E any] struct {
+type Observer[E any] struct {
 	lock      sync.RWMutex
 	topics    map[int64]map[string]bool
 	observers map[string]chan *E
 }
 
-func NewObservable[E any]() *Observable[E] {
-	return &Observable[E]{
+func NewObserver[E any]() *Observer[E] {
+	return &Observer[E]{
 		topics:    make(map[int64]map[string]bool),
 		observers: make(map[string]chan *E),
 	}
 }
 
-func (p *Observable[E]) Observe(ctx context.Context, observerID string, topicIDs ...int64) (<-chan *E, func()) {
+func (p *Observer[E]) Observe(ctx context.Context, observerID string, topicIDs ...int64) (<-chan *E, func()) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -38,7 +38,7 @@ func (p *Observable[E]) Observe(ctx context.Context, observerID string, topicIDs
 	return p.observers[observerID], p.cancel(ctx, observerID, topicIDs...)
 }
 
-func (p *Observable[E]) cancel(ctx context.Context, observerID string, topicIDs ...int64) func() {
+func (p *Observer[E]) cancel(ctx context.Context, observerID string, topicIDs ...int64) func() {
 	return func() {
 		p.lock.Lock()
 		defer p.lock.Unlock()
@@ -60,8 +60,7 @@ func (p *Observable[E]) cancel(ctx context.Context, observerID string, topicIDs 
 	}
 }
 
-func (p *Observable[E]) Notify(ctx context.Context, topicID int64, event *E) {
-	// TODO Make sure to set the event at before calling the notify
+func (p *Observer[E]) Notify(ctx context.Context, topicID int64, event *E) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 

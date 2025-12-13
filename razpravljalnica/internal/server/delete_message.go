@@ -8,11 +8,23 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *ServerNode) DeleteMessage(ctx context.Context, req *api.DeleteMessageRequest) (*emptypb.Empty, error) {
 	if !s.isTail() {
-		return s.upstreamClient.Public.DeleteMessage(ctx, req)
+		empty, err := s.upstreamClient.Public.DeleteMessage(ctx, req)
+		if err == nil {
+			s.messageEventObserver.Notify(ctx, req.TopicId, &api.MessageEvent{
+				EventAt: timestamppb.Now(),
+				Op:      api.OpType_OP_DELETE,
+				Message: &api.Message{
+					Id: req.MessageId,
+				},
+			})
+		}
+
+		return empty, err
 	}
 
 	message, err := s.db.FindMessageByID(req.MessageId)
