@@ -166,7 +166,9 @@ func (c *ControlNode) linkServers(ctx context.Context) {
 		isHead := i == 0
 		isTail := i == len(c.healthyClients)-1
 
-		req := api.RewireRequest{}
+		req := api.RewireRequest{
+			UpstreamCount: int32(len(c.healthyClients) - i - 1),
+		}
 		if !isHead && !isTail {
 			downstream := c.healthyClients[i-1]
 			req.DownstreamId = shared.AnyPtr(int64(downstream.Id))

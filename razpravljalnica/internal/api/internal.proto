@@ -56,4 +56,5 @@ message RewireRequest {
   optional string downstream_address = 2;
   optional int64 upstream_id = 3;
   optional string upstream_address = 4;
+  int32 upstream_count = 5;
 }

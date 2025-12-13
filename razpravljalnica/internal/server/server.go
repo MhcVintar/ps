@@ -23,11 +23,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetSubscriptionNode implements api.MessageBoardServer.
-func (s *ServerNode) GetSubscriptionNode(context.Context, *api.SubscriptionNodeRequest) (*api.SubscriptionNodeResponse, error) {
-	panic("unimplemented")
-}
-
 // SubscribeTopic implements api.MessageBoardServer.
 func (s *ServerNode) SubscribeTopic(*api.SubscribeTopicRequest, grpc.ServerStreamingServer[api.MessageEvent]) error {
 	panic("unimplemented")
@@ -44,6 +39,7 @@ type ServerNode struct {
 	controlClient        *shared.ControlNodeClient
 	downstreamClient     *shared.ServerNodeClient
 	upstreamClient       *shared.ServerNodeClient
+	upstreamCount        int32
 	messageEventObserver *shared.Observable[api.MessageEvent]
 	shutdownOnce         sync.Once
 }
@@ -58,6 +54,7 @@ func NewServerNode(id int, address, control string, downstreamID *int64, downstr
 		grpcServer:           grpc.NewServer(),
 		healthServer:         health.NewServer(),
 		messageEventObserver: shared.NewObservable[api.MessageEvent](),
+		upstreamCount:        0,
 	}
 
 	// Prepare database
@@ -195,6 +192,7 @@ func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 				RewireRequest: &api.RewireRequest{
 					UpstreamId:      shared.AnyPtr(int64(s.id)),
 					UpstreamAddress: &s.address,
+					UpstreamCount:   1,
 				},
 			}); err != nil {
 				shared.Logger.ErrorContext(ctx, "failed to send rewire request")
