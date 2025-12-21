@@ -32,7 +32,7 @@ func (p *Observer[E]) Observe(ctx context.Context, observerID string, topicIDs .
 		topic[observerID] = true
 	}
 
-	p.observers[observerID] = make(chan *E, 1)
+	p.observers[observerID] = make(chan *E, 20)
 
 	Logger.InfoContext(ctx, "observing", "observer_id", observerID, "topic_ids", topicIDs)
 	return p.observers[observerID], p.cancel(ctx, observerID, topicIDs...)
