@@ -17,12 +17,6 @@ func main() {
 		Name:  "server",
 		Usage: "Start the server",
 		Flags: []cli.Flag{
-			&cli.IntFlag{
-				Name:     "id",
-				Aliases:  []string{"i"},
-				Usage:    "ID for the server",
-				Required: true,
-			},
 			&cli.StringFlag{
 				Name:     "address",
 				Aliases:  []string{"a"},
@@ -30,12 +24,6 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "control",
-				Aliases:  []string{"c"},
-				Usage:    "Address of the control node",
-				Required: true,
-			},
-			&cli.Int64Flag{
 				Name:  "downstream-id",
 				Usage: "ID of the downstream server",
 			},
@@ -45,20 +33,18 @@ func main() {
 			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			id := command.Int("id")
 			address := command.String("address")
-			control := command.String("control")
 
-			var downstreamID *int64
+			var downstreamID *string
 			if command.IsSet("downstream-id") {
-				downstreamID = shared.AnyPtr(command.Int64("downstream-id"))
+				downstreamID = shared.AnyPtr(command.String("downstream-id"))
 			}
 			var downstreamAddress *string
 			if command.IsSet("downstream-address") {
 				downstreamAddress = shared.AnyPtr(command.String("downstream-address"))
 			}
 
-			server, err := server.NewServerNode(id, address, control, downstreamID, downstreamAddress)
+			server, err := server.NewServerNode(address, downstreamID, downstreamAddress)
 			if err != nil {
 				return err
 			}

@@ -18,30 +18,52 @@ func main() {
 		Usage: "Start the control",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "host",
-				Aliases:  []string{"h"},
-				Usage:    "Host for the control node",
+				Name:     "grpc-address",
+				Usage:    "Address for the server",
 				Required: true,
 			},
-			&cli.IntFlag{
-				Name:     "port",
-				Aliases:  []string{"p"},
-				Usage:    "Port for the control node",
+			&cli.StringFlag{
+				Name:     "raft-address",
+				Usage:    "Address for the server",
 				Required: true,
 			},
 			&cli.IntFlag{
 				Name:     "server-nodes",
-				Aliases:  []string{"s"},
+				Aliases:  []string{"n"},
 				Usage:    "Number of server nodes",
 				Required: true,
 			},
+			&cli.IntFlag{
+				Name:     "server-nodes-start-port",
+				Aliases:  []string{"p"},
+				Usage:    "Starting port for server nodes",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "raft-dir",
+				Aliases:  []string{"r"},
+				Usage:    "Directory for raft to persist changes",
+				Required: true,
+			},
+			&cli.StringSliceFlag{
+				Name:  "peer",
+				Usage: "Raft addresses of peer control nodes",
+			},
+			&cli.BoolFlag{
+				Name:  "bootstrap",
+				Usage: "Bootstrap this node as the initial cluster member",
+			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			host := command.String("host")
-			port := command.Int("port")
+			grpcAddress := command.String("grpc-address")
+			raftAddress := command.String("raft-address")
 			nServerNodes := command.Int("server-nodes")
+			serverNodesStartPort := command.Int("server-nodes-start-port")
+			raftDir := command.String("raft-dir")
+			peers := command.StringSlice("peer")
+			bootstrap := command.Bool("bootstrap")
 
-			control, err := control.NewControlNode(host, port, nServerNodes)
+			control, err := control.NewControlNode(grpcAddress, raftAddress, nServerNodes, serverNodesStartPort, raftDir, peers, bootstrap)
 			if err != nil {
 				return err
 			}

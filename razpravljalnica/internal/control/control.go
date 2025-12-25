@@ -2,6 +2,7 @@ package control
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -14,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,42 +27,51 @@ import (
 
 type ControlNode struct {
 	api.UnimplementedControlPlaneServer
-	address        string
+	id             string
+	grpcAddress    string
+	raftAddress    string
 	grpcServer     *grpc.Server
+	raft           *raft.Raft
+	state          *State
 	healthyClients []*shared.ServerNodeClient
 	pendingClient  *shared.ServerNodeClient
 	deadClients    []*shared.ServerNodeClient
 }
 
-var _ api.ControlPlaneServer = (*ControlNode)(nil)
-
-func NewControlNode(host string, port, nServerNodes int) (*ControlNode, error) {
+func NewControlNode(grpcAddress, raftAddress string, nServerNodes, serverNodeStartPort int, raftDir string, peers []string, bootstrap bool) (*ControlNode, error) {
 	c := ControlNode{
-		address:    fmt.Sprintf("%v:%v", host, port),
-		grpcServer: grpc.NewServer(),
+		id:          raftAddress,
+		grpcAddress: grpcAddress,
+		raftAddress: raftAddress,
+		grpcServer:  grpc.NewServer(),
 	}
 
 	// Prepare server clients
 	serverClients := make([]*shared.ServerNodeClient, 0, nServerNodes)
 	for i := range nServerNodes {
-		address := fmt.Sprintf("%v:%v", host, port+i+1)
-		conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		clientAddr := fmt.Sprintf("localhost:%v", serverNodeStartPort+i)
+		conn, err := grpc.NewClient(clientAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 		if err != nil {
 			for _, client := range serverClients {
 				client.Conn.Close()
 			}
-			return nil, status.Errorf(codes.Internal, "failed to open client connection to %q: %v", address, err)
+			return nil, status.Errorf(codes.Internal, "failed to open client connection to %q: %v", clientAddr, err)
 		}
 
 		serverClients = append(serverClients, &shared.ServerNodeClient{
-			Id:       i + 1,
+			Id:       strconv.Itoa(i + 1),
 			Conn:     conn,
 			Health:   grpc_health_v1.NewHealthClient(conn),
 			Internal: api.NewInternalMessageBoardServiceClient(conn),
 		})
 	}
 	c.deadClients = serverClients
+
+	// Initialize Raft
+	if err := c.setupRaft(raftDir, peers, bootstrap); err != nil {
+		return nil, fmt.Errorf("failed to setup raft: %w", err)
+	}
 
 	// Register gRPC service
 	api.RegisterControlPlaneServer(c.grpcServer, &c)
@@ -68,8 +80,93 @@ func NewControlNode(host string, port, nServerNodes int) (*ControlNode, error) {
 	return &c, nil
 }
 
+func (c *ControlNode) setupRaft(raftDir string, peers []string, bootstrap bool) error {
+	c.state = NewState(StateLog{
+		HealthyNodes: c.clientsToNodeInfo(c.healthyClients),
+		PendingNode:  c.clientToNodeInfo(c.pendingClient),
+		DeadNodes:    c.clientsToNodeInfo(c.deadClients),
+	})
+
+	if err := os.MkdirAll(raftDir, 0755); err != nil {
+		return fmt.Errorf("failed to create raft directory: %w", err)
+	}
+
+	config := raft.DefaultConfig()
+	config.LocalID = raft.ServerID(c.id)
+
+	logStore, err := raftboltdb.NewBoltStore(filepath.Join(raftDir, "raft-log.db"))
+	if err != nil {
+		return fmt.Errorf("failed to create log store: %w", err)
+	}
+
+	stableStore, err := raftboltdb.NewBoltStore(filepath.Join(raftDir, "raft-stable.db"))
+	if err != nil {
+		return fmt.Errorf("failed to create stable store: %w", err)
+	}
+
+	snapshotStore, err := raft.NewFileSnapshotStore(raftDir, 2, os.Stderr)
+	if err != nil {
+		return fmt.Errorf("failed to create snapshot store: %w", err)
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp", c.raftAddress)
+	if err != nil {
+		return fmt.Errorf("failed to resolve address: %w", err)
+	}
+	transport, err := raft.NewTCPTransport(c.raftAddress, addr, 3, 10*time.Second, os.Stderr)
+	if err != nil {
+		return fmt.Errorf("failed to create transport: %w", err)
+	}
+
+	r, err := raft.NewRaft(config, c.state, logStore, stableStore, snapshotStore, transport)
+	if err != nil {
+		return fmt.Errorf("failed to create raft: %w", err)
+	}
+	c.raft = r
+
+	if bootstrap {
+		servers := []raft.Server{
+			{
+				ID:      config.LocalID,
+				Address: transport.LocalAddr(),
+			},
+		}
+		for _, peer := range peers {
+			servers = append(servers, raft.Server{
+				ID:      raft.ServerID(peer),
+				Address: raft.ServerAddress(peer),
+			})
+		}
+
+		configuration := raft.Configuration{
+			Servers: servers,
+		}
+		c.raft.BootstrapCluster(configuration)
+	}
+
+	return nil
+}
+
+func (c *ControlNode) applyStateChange(stateLog StateLog) error {
+	data, err := json.Marshal(stateLog)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	future := c.raft.Apply(data, 10*time.Second)
+	if err := future.Error(); err != nil {
+		return fmt.Errorf("failed to apply state change: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ControlNode) isLeader() bool {
+	return c.raft.State() == raft.Leader
+}
+
 func (c *ControlNode) Run() error {
-	listener, err := net.Listen("tcp", c.address)
+	listener, err := net.Listen("tcp", c.grpcAddress)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -86,16 +183,25 @@ func (c *ControlNode) Run() error {
 		sig := <-signalChan
 		shared.Logger.Info("received shutdown signal", "signal", sig.String())
 		cancel()
+
+		if c.raft != nil {
+			if err := c.raft.Shutdown().Error(); err != nil {
+				shared.Logger.Error("failed to shutdown raft", "error", err)
+			}
+		}
+
 		c.grpcServer.GracefulStop()
 
 		allClients := append(c.healthyClients, c.pendingClient)
 		allClients = append(allClients, c.deadClients...)
 		for _, client := range allClients {
-			client.Conn.Close()
+			if client != nil {
+				client.Conn.Close()
+			}
 		}
 	}()
 
-	shared.Logger.Info("control running", "address", c.address)
+	shared.Logger.Info("control running", "address", c.grpcAddress)
 
 	if err := c.grpcServer.Serve(listener); err != nil {
 		return fmt.Errorf("failed to serve: %w", err)
@@ -116,6 +222,11 @@ func (c *ControlNode) runServersHealthLoop(ctx context.Context) {
 			return
 
 		case <-ticker.C:
+			if !c.isLeader() {
+				shared.Logger.InfoContext(ctx, "skipping health check - not leader")
+				continue
+			}
+
 			shared.Logger.InfoContext(ctx, "running health check loop")
 			cycleCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 
@@ -123,9 +234,39 @@ func (c *ControlNode) runServersHealthLoop(ctx context.Context) {
 			c.linkServers(cycleCtx)
 			c.repairServers(cycleCtx)
 
+			stateLog := StateLog{
+				HealthyNodes: c.clientsToNodeInfo(c.healthyClients),
+				PendingNode:  c.clientToNodeInfo(c.pendingClient),
+				DeadNodes:    c.clientsToNodeInfo(c.deadClients),
+			}
+			if err := c.applyStateChange(stateLog); err != nil {
+				shared.Logger.ErrorContext(ctx, "failed to apply state change", "error", err)
+			}
+
 			cancel()
 		}
 	}
+}
+
+func (c *ControlNode) clientToNodeInfo(client *shared.ServerNodeClient) *api.NodeInfo {
+	if client == nil {
+		return nil
+	}
+	return &api.NodeInfo{
+		NodeId:  client.Id,
+		Address: client.Conn.Target(),
+	}
+}
+
+func (c *ControlNode) clientsToNodeInfo(clients []*shared.ServerNodeClient) []*api.NodeInfo {
+	nodes := make([]*api.NodeInfo, 0, len(clients))
+	for _, client := range clients {
+		node := c.clientToNodeInfo(client)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
 }
 
 func (c *ControlNode) checkServersHealth(ctx context.Context) {
@@ -171,18 +312,18 @@ func (c *ControlNode) linkServers(ctx context.Context) {
 		}
 		if !isHead && !isTail {
 			downstream := c.healthyClients[i-1]
-			req.DownstreamId = shared.AnyPtr(int64(downstream.Id))
+			req.DownstreamId = &downstream.Id
 			req.DownstreamAddress = shared.AnyPtr(downstream.Conn.Target())
 			upstream := c.healthyClients[i+1]
-			req.UpstreamId = shared.AnyPtr(int64(upstream.Id))
+			req.UpstreamId = &upstream.Id
 			req.UpstreamAddress = shared.AnyPtr(upstream.Conn.Target())
 		} else if isHead && !isTail {
 			upstream := c.healthyClients[i+1]
-			req.UpstreamId = shared.AnyPtr(int64(upstream.Id))
+			req.UpstreamId = &upstream.Id
 			req.UpstreamAddress = shared.AnyPtr(upstream.Conn.Target())
 		} else if !isHead && isTail {
 			downstream := c.healthyClients[i-1]
-			req.DownstreamId = shared.AnyPtr(int64(downstream.Id))
+			req.DownstreamId = &downstream.Id
 			req.DownstreamAddress = shared.AnyPtr(downstream.Conn.Target())
 		}
 
@@ -197,16 +338,16 @@ func (c *ControlNode) repairServers(ctx context.Context) {
 		c.deadClients = c.deadClients[1:]
 
 		go func() {
-			args := []string{"--id", strconv.Itoa(c.pendingClient.Id), "--address", c.pendingClient.Conn.Target(), "--control", c.address}
+			args := []string{"--address", c.pendingClient.Conn.Target()}
 			if len(c.healthyClients) > 0 {
 				downstream := c.healthyClients[len(c.healthyClients)-1]
-				args = append(args, "--downstream-id", strconv.Itoa(downstream.Id), "--downstream-address", downstream.Conn.Target())
+				args = append(args, "--downstream-id", downstream.Id, "--downstream-address", downstream.Conn.Target())
 			}
 
 			cmd := exec.Command(filepath.Join("build", "server"), args...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Stdin = os.Stdin
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				Setpgid: true,
+			}
 
 			if err := cmd.Start(); err != nil {
 				shared.Logger.ErrorContext(ctx, "failed to start server node", "address", c.pendingClient.Conn.Target(), "error", err)

@@ -22,7 +22,7 @@ func (s *ServerNode) Rewire(ctx context.Context, req *api.RewireRequest) (*empty
 			return nil, status.Errorf(codes.Internal, "failed to open downstream client connection to %q: %v", req.GetDownstreamAddress(), err)
 		}
 		newDownstream = &shared.ServerNodeClient{
-			Id:       int(req.GetDownstreamId()),
+			Id:       req.GetDownstreamId(),
 			Conn:     conn,
 			Public:   api.NewMessageBoardClient(conn),
 			Internal: api.NewInternalMessageBoardServiceClient(conn),
@@ -44,7 +44,7 @@ func (s *ServerNode) Rewire(ctx context.Context, req *api.RewireRequest) (*empty
 			return nil, status.Errorf(codes.Internal, "failed to open upstream client connection to %q: %v", req.GetUpstreamAddress(), err)
 		}
 		newUpstream = &shared.ServerNodeClient{
-			Id:       int(req.GetUpstreamId()),
+			Id:       req.GetUpstreamId(),
 			Conn:     conn,
 			Public:   api.NewMessageBoardClient(conn),
 			Internal: api.NewInternalMessageBoardServiceClient(conn),

@@ -8,13 +8,9 @@ import (
 )
 
 type ServerNodeClient struct {
-	Id       int
+	Id       string
 	Conn     *grpc.ClientConn
 	Health   grpc_health_v1.HealthClient
 	Public   api.MessageBoardClient
 	Internal api.InternalMessageBoardServiceClient
-}
-
-type ControlNodeClient struct {
-	Conn *grpc.ClientConn
 }

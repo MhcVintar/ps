@@ -15,23 +15,19 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 )
 
 type ServerNode struct {
 	api.UnimplementedInternalMessageBoardServiceServer
 	api.UnimplementedMessageBoardServer
-	id                   int
+	id                   string
 	address              string
 	db                   *database.Database
 	grpcServer           *grpc.Server
 	healthServer         *health.Server
-	controlClient        *shared.ControlNodeClient
 	downstreamClient     *shared.ServerNodeClient
 	upstreamClient       *shared.ServerNodeClient
 	upstreamCount        int32
@@ -42,9 +38,9 @@ type ServerNode struct {
 var _ api.InternalMessageBoardServiceServer = (*ServerNode)(nil)
 var _ api.MessageBoardServer = (*ServerNode)(nil)
 
-func NewServerNode(id int, address, control string, downstreamID *int64, downstreamAddress *string) (*ServerNode, error) {
+func NewServerNode(address string, downstreamID, downstreamAddress *string) (*ServerNode, error) {
 	s := ServerNode{
-		id:                   id,
+		id:                   address,
 		address:              address,
 		grpcServer:           grpc.NewServer(),
 		healthServer:         health.NewServer(),
@@ -62,22 +58,12 @@ func NewServerNode(id int, address, control string, downstreamID *int64, downstr
 	// Prepare health server
 	s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 
-	// Prepare control client
-	conn, err := grpc.NewClient(control, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to open client connection to %q: %v", address, err)
-	}
-	s.controlClient = &shared.ControlNodeClient{
-		Conn: conn,
-	}
-
 	// Prepare downstream
 	if downstreamID != nil && downstreamAddress != nil {
 		if _, err := s.Rewire(context.Background(), &api.RewireRequest{
 			DownstreamId:      downstreamID,
 			DownstreamAddress: downstreamAddress,
 		}); err != nil {
-			s.controlClient.Conn.Close()
 			return nil, err
 		}
 	}
@@ -133,7 +119,6 @@ func (s *ServerNode) shutdown(ctx context.Context, cancel context.CancelFunc, re
 		cancel()
 		s.grpcServer.GracefulStop()
 
-		s.controlClient.Conn.Close()
 		if s.downstreamClient != nil {
 			s.downstreamClient.Conn.Close()
 		}
@@ -185,7 +170,7 @@ func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 		case *api.TailHandoffResponse_Handoff:
 			if err := stream.Send(&api.TailHandoffRequest{
 				RewireRequest: &api.RewireRequest{
-					UpstreamId:      shared.AnyPtr(int64(s.id)),
+					UpstreamId:      &s.id,
 					UpstreamAddress: &s.address,
 					UpstreamCount:   1,
 				},

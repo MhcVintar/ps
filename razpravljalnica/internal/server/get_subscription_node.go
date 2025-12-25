@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/rand"
 	"razpravljalnica/internal/api"
-	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +17,7 @@ func (s *ServerNode) GetSubscriptionNode(ctx context.Context, req *api.Subscript
 	return &api.SubscriptionNodeResponse{
 		SubscribeToken: uuid.NewString(),
 		Node: &api.NodeInfo{
-			NodeId:  strconv.Itoa(s.id),
+			NodeId:  s.id,
 			Address: s.address,
 		},
 	}, nil

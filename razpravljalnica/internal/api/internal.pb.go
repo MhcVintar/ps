@@ -360,9 +360,9 @@ func (x *ApplyWALEntryRequest) GetEntry() *WALEntry {
 
 type RewireRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	DownstreamId      *int64                 `protobuf:"varint,1,opt,name=downstream_id,json=downstreamId,proto3,oneof" json:"downstream_id,omitempty"`
+	DownstreamId      *string                `protobuf:"bytes,1,opt,name=downstream_id,json=downstreamId,proto3,oneof" json:"downstream_id,omitempty"`
 	DownstreamAddress *string                `protobuf:"bytes,2,opt,name=downstream_address,json=downstreamAddress,proto3,oneof" json:"downstream_address,omitempty"`
-	UpstreamId        *int64                 `protobuf:"varint,3,opt,name=upstream_id,json=upstreamId,proto3,oneof" json:"upstream_id,omitempty"`
+	UpstreamId        *string                `protobuf:"bytes,3,opt,name=upstream_id,json=upstreamId,proto3,oneof" json:"upstream_id,omitempty"`
 	UpstreamAddress   *string                `protobuf:"bytes,4,opt,name=upstream_address,json=upstreamAddress,proto3,oneof" json:"upstream_address,omitempty"`
 	UpstreamCount     int32                  `protobuf:"varint,5,opt,name=upstream_count,json=upstreamCount,proto3" json:"upstream_count,omitempty"`
 	unknownFields     protoimpl.UnknownFields
@@ -399,11 +399,11 @@ func (*RewireRequest) Descriptor() ([]byte, []int) {
 	return file_internal_api_internal_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *RewireRequest) GetDownstreamId() int64 {
+func (x *RewireRequest) GetDownstreamId() string {
 	if x != nil && x.DownstreamId != nil {
 		return *x.DownstreamId
 	}
-	return 0
+	return ""
 }
 
 func (x *RewireRequest) GetDownstreamAddress() string {
@@ -413,11 +413,11 @@ func (x *RewireRequest) GetDownstreamAddress() string {
 	return ""
 }
 
-func (x *RewireRequest) GetUpstreamId() int64 {
+func (x *RewireRequest) GetUpstreamId() string {
 	if x != nil && x.UpstreamId != nil {
 		return *x.UpstreamId
 	}
-	return 0
+	return ""
 }
 
 func (x *RewireRequest) GetUpstreamAddress() string {
@@ -461,9 +461,9 @@ const file_internal_api_internal_proto_rawDesc = "" +
 	"\x14ApplyWALEntryRequest\x12#\n" +
 	"\x05entry\x18\x01 \x01(\v2\r.api.WALEntryR\x05entry\"\xb8\x02\n" +
 	"\rRewireRequest\x12(\n" +
-	"\rdownstream_id\x18\x01 \x01(\x03H\x00R\fdownstreamId\x88\x01\x01\x122\n" +
+	"\rdownstream_id\x18\x01 \x01(\tH\x00R\fdownstreamId\x88\x01\x01\x122\n" +
 	"\x12downstream_address\x18\x02 \x01(\tH\x01R\x11downstreamAddress\x88\x01\x01\x12$\n" +
-	"\vupstream_id\x18\x03 \x01(\x03H\x02R\n" +
+	"\vupstream_id\x18\x03 \x01(\tH\x02R\n" +
 	"upstreamId\x88\x01\x01\x12.\n" +
 	"\x10upstream_address\x18\x04 \x01(\tH\x03R\x0fupstreamAddress\x88\x01\x01\x12%\n" +
 	"\x0eupstream_count\x18\x05 \x01(\x05R\rupstreamCountB\x10\n" +

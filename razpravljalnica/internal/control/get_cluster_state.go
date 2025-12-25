@@ -3,7 +3,6 @@ package control
 import (
 	"context"
 	"razpravljalnica/internal/api"
-	"strconv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,11 +19,11 @@ func (c *ControlNode) GetClusterState(ctx context.Context, _ *emptypb.Empty) (*a
 	tail := c.healthyClients[nHealthy-1]
 	return &api.GetClusterStateResponse{
 		Head: &api.NodeInfo{
-			NodeId:  strconv.Itoa(head.Id),
+			NodeId:  head.Id,
 			Address: head.Conn.Target(),
 		},
 		Tail: &api.NodeInfo{
-			NodeId:  strconv.Itoa(tail.Id),
+			NodeId:  tail.Id,
 			Address: tail.Conn.Target(),
 		},
 	}, nil
