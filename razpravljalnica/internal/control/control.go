@@ -11,10 +11,14 @@ import (
 	"path/filepath"
 	"razpravljalnica/internal/api"
 	"razpravljalnica/internal/shared"
+	"slices"
 	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"google.golang.org/grpc"
@@ -27,15 +31,16 @@ import (
 
 type ControlNode struct {
 	api.UnimplementedControlPlaneServer
-	id             string
-	grpcAddress    string
-	raftAddress    string
-	grpcServer     *grpc.Server
-	raft           *raft.Raft
-	state          *State
-	healthyClients []*shared.ServerNodeClient
-	pendingClient  *shared.ServerNodeClient
-	deadClients    []*shared.ServerNodeClient
+	id                 string
+	grpcAddress        string
+	raftAddress        string
+	grpcServer         *grpc.Server
+	raft               *raft.Raft
+	state              *State
+	leadershipTakeover sync.Mutex
+	healthyClients     []*shared.ServerNodeClient
+	pendingClient      *shared.ServerNodeClient
+	deadClients        []*shared.ServerNodeClient
 }
 
 func NewControlNode(grpcAddress, raftAddress string, nServerNodes, serverNodeStartPort int, raftDir string, peers []string, bootstrap bool) (*ControlNode, error) {
@@ -93,6 +98,14 @@ func (c *ControlNode) setupRaft(raftDir string, peers []string, bootstrap bool) 
 
 	config := raft.DefaultConfig()
 	config.LocalID = raft.ServerID(c.id)
+	config.Logger = hclog.New(&hclog.LoggerOptions{
+		Level:      hclog.Info,
+		Output:     os.Stdout,
+		JSONFormat: true,
+	})
+
+	notifyCh := make(chan bool, 1)
+	config.NotifyCh = notifyCh
 
 	logStore, err := raftboltdb.NewBoltStore(filepath.Join(raftDir, "raft-log.db"))
 	if err != nil {
@@ -144,7 +157,45 @@ func (c *ControlNode) setupRaft(raftDir string, peers []string, bootstrap bool) 
 		c.raft.BootstrapCluster(configuration)
 	}
 
+	go c.observeLeadership(notifyCh)
+
 	return nil
+}
+
+func (c *ControlNode) observeLeadership(ch <-chan bool) {
+	for isLeader := range ch {
+		c.leadershipTakeover.Lock()
+		if isLeader {
+			shared.Logger.Info("became leader, syncing local state from the log")
+
+			allClients := make(map[string]*shared.ServerNodeClient)
+			for _, client := range slices.Concat(c.healthyClients, c.deadClients) {
+				allClients[client.Id] = client
+			}
+			if c.pendingClient != nil {
+				allClients[c.pendingClient.Id] = c.pendingClient
+			}
+
+			c.healthyClients = make([]*shared.ServerNodeClient, len(c.state.HealthyNodes))
+			for i, client := range c.state.HealthyNodes {
+				c.healthyClients[i] = allClients[client.NodeId]
+			}
+
+			c.deadClients = make([]*shared.ServerNodeClient, len(c.state.DeadNodes))
+			for i, client := range c.state.DeadNodes {
+				c.deadClients[i] = allClients[client.NodeId]
+			}
+
+			if c.state.PendingNode == nil {
+				c.pendingClient = nil
+			} else {
+				c.pendingClient = allClients[c.state.PendingNode.NodeId]
+			}
+
+			shared.Logger.Info("local state synced from the log")
+		}
+		c.leadershipTakeover.Unlock()
+	}
 }
 
 func (c *ControlNode) applyStateChange(stateLog StateLog) error {
@@ -227,6 +278,7 @@ func (c *ControlNode) runServersHealthLoop(ctx context.Context) {
 				continue
 			}
 
+			c.leadershipTakeover.Lock()
 			shared.Logger.InfoContext(ctx, "running health check loop")
 			cycleCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 
@@ -242,6 +294,7 @@ func (c *ControlNode) runServersHealthLoop(ctx context.Context) {
 			if err := c.applyStateChange(stateLog); err != nil {
 				shared.Logger.ErrorContext(ctx, "failed to apply state change", "error", err)
 			}
+			c.leadershipTakeover.Unlock()
 
 			cancel()
 		}
@@ -344,10 +397,14 @@ func (c *ControlNode) repairServers(ctx context.Context) {
 				args = append(args, "--downstream-id", downstream.Id, "--downstream-address", downstream.Conn.Target())
 			}
 
-			cmd := exec.Command(filepath.Join("build", "server"), args...)
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				Setpgid: true,
-			}
+			cmdStr := fmt.Sprintf("%s %s > %s 2>&1",
+				filepath.Join("build", "server"),
+				strings.Join(args, " "),
+				fmt.Sprintf("./logs/%s.jsonl", c.pendingClient.Id),
+			)
+
+			cmd := exec.Command("sh", "-c", cmdStr)
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 			if err := cmd.Start(); err != nil {
 				shared.Logger.ErrorContext(ctx, "failed to start server node", "address", c.pendingClient.Conn.Target(), "error", err)
