@@ -18,3 +18,7 @@ protoc:
 build:
 	go build -o build/server cmd/server/main.go
 	go build -o build/control cmd/control/main.go
+	go build -o build/client cmd/client/main.go
+.PHONY: buildClient
+buildClient:
+	go build -o build/client cmd/client/main.go
