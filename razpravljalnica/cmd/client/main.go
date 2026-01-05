@@ -8,9 +8,8 @@ import (
 func main() {
 	fmt.Println("bootstrap")
 
-	if x := client.Bootstrap(); x != nil{
-		fmt.Println("bootstrap")
-
+	if x := client.RunGUI(); x != nil{
+		fmt.Println("ERROR: An error has occured while running the TUI.")
 	}
 }
 
