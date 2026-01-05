@@ -46,10 +46,18 @@ func RunGUI() error{
 					SetSelectedFunc(func() {
 						app.Stop()
 					})
+	addTopicButton := tview.NewButton("Add topic").
+					SetSelectedFunc(func() {
+						app.Stop()
+					})
+	rowButtons := tview.NewFlex().
+		SetDirection(tview.FlexColumn).
+		AddItem(exitButton, 0, 1, true).
+		AddItem(addTopicButton, 0, 1, false)
 	sidebar := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(chooseTopic, 0, 1, true).
-		AddItem(exitButton, 1, 0, false)
+		AddItem(chooseTopic, 0, 10, true).
+		AddItem(rowButtons, 0, 1, false)
 
 	
 	msgs := tview.NewTextView().
