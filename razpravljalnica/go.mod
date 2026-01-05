@@ -3,6 +3,7 @@ module razpravljalnica
 go 1.24.0
 
 require (
+	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-hclog v1.6.2
 	github.com/hashicorp/raft v1.7.3
@@ -20,7 +21,6 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gdamore/tcell/v2 v2.8.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-metrics v0.5.4 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect

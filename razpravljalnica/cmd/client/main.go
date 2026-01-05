@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
-	"razpravljalnica/internal/client" 
+	"razpravljalnica/internal/client" 	
 )
 
 func main() {
 	fmt.Println("bootstrap")
 
-	client.Bootstrap()
+	if x := client.Bootstrap(); x != nil{
+		fmt.Println("bootstrap")
+
+	}
 }
+
