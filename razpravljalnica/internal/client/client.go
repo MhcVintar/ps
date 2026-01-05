@@ -3,12 +3,15 @@ package client
 import(
 	"fmt"
 	"github.com/rivo/tview"
-	//"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2"
 
 )
-
+const(
+	sidebarFocus = 0
+	mainFocus = 1
+)
 func Bootstrap() error{
-	
+	//sidebarOrMainFocus := sidebarFocus
 	fmt.Println("Client bootstrap")
 	app := tview.NewApplication()
 
@@ -17,12 +20,14 @@ func Bootstrap() error{
 		SetTextAlign(tview.AlignLeft).
 		SetChangedFunc(func() {
 			app.Draw()
-		})
+		}).
+		SetText("YIPEEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE")
+
 	chooseTopic.SetBorder(true).SetTitle(" Choose topic ").SetTitleAlign(tview.AlignLeft)
 	
 	sidebar := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(chooseTopic, 0, 1, true).
+		AddItem(chooseTopic, 0, 1, false).
 		AddItem(
 			tview.NewForm().
 				AddButton("Exit", func() {
@@ -33,17 +38,18 @@ func Bootstrap() error{
 	
 	msgs := tview.NewTextView().
 		SetDynamicColors(true).
+		SetScrollable(true).
+		SetWrap(true).
 		SetTextAlign(tview.AlignLeft).
 		SetChangedFunc(func() {
 			app.Draw()
 		}).
-		SetText("YIPEEE")
+		SetText("YIPEEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE\nYIPEE")
 	
-	// Lower part
-	textField := tview.NewInputField().
-			SetLabel("TODO").
-			SetFieldWidth(20)
-	
+	// Lower part of main section, meant to represent input
+	textField := tview.NewTextArea().
+		SetLabel("textField")
+		//SetFieldWidth(20)
 	sendText := tview.NewForm().
 			//SetDirection(tview.FlexRow).
 			AddFormItem(textField).
@@ -56,14 +62,23 @@ func Bootstrap() error{
 
 
 	main := tview.NewFlex().
+		SetDirection(tview.FlexRow).
 		AddItem(msgs, 0, 1, false).
-		AddItem(sendText, 3, 0, false)
-
+		AddItem(sendText, 0, 1, true)
+	
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(sidebar, 20, 1, true).
-		AddItem(main, 0, 0, true)
-
+		AddItem(sidebar, 0, 1, false).
+		AddItem(main, 0, 1, true)
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+			case tcell.KeyLeft:
+				app.SetFocus(sidebar)
+			case tcell.KeyRight:
+				app.SetFocus(main)
+		}
+		return event
+	})
 	
 	return app.SetRoot(layout, true).Run()
 }
