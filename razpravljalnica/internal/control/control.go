@@ -361,23 +361,31 @@ func (c *ControlNode) linkServers(ctx context.Context) {
 		isTail := i == len(c.healthyClients)-1
 
 		req := api.RewireRequest{
+			Downstream:    new(api.RewireRequest_Target),
+			Upstream:      new(api.RewireRequest_Target),
 			UpstreamCount: int32(len(c.healthyClients) - i - 1),
 		}
-		if !isHead && !isTail {
-			downstream := c.healthyClients[i-1]
-			req.DownstreamId = &downstream.Id
-			req.DownstreamAddress = shared.AnyPtr(downstream.Conn.Target())
+
+		if isHead && isTail {
+			req.Downstream.Drop = true
+			req.Upstream.Drop = true
+		} else if isHead {
+			req.Downstream.Drop = true
 			upstream := c.healthyClients[i+1]
-			req.UpstreamId = &upstream.Id
-			req.UpstreamAddress = shared.AnyPtr(upstream.Conn.Target())
-		} else if isHead && !isTail {
-			upstream := c.healthyClients[i+1]
-			req.UpstreamId = &upstream.Id
-			req.UpstreamAddress = shared.AnyPtr(upstream.Conn.Target())
-		} else if !isHead && isTail {
+			req.Upstream.Id = upstream.Id
+			req.Upstream.Address = upstream.Conn.Target()
+		} else if isTail {
 			downstream := c.healthyClients[i-1]
-			req.DownstreamId = &downstream.Id
-			req.DownstreamAddress = shared.AnyPtr(downstream.Conn.Target())
+			req.Downstream.Id = downstream.Id
+			req.Downstream.Address = downstream.Conn.Target()
+			req.Upstream.Drop = true
+		} else {
+			downstream := c.healthyClients[i-1]
+			req.Downstream.Id = downstream.Id
+			req.Downstream.Address = downstream.Conn.Target()
+			upstream := c.healthyClients[i+1]
+			req.Upstream.Id = upstream.Id
+			req.Upstream.Address = upstream.Conn.Target()
 		}
 
 		shared.Logger.InfoContext(ctx, "rewiring server node", "address", client.Conn.Target())

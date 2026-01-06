@@ -61,8 +61,11 @@ func NewServerNode(address string, downstreamID, downstreamAddress *string) (*Se
 	// Prepare downstream
 	if downstreamID != nil && downstreamAddress != nil {
 		if _, err := s.Rewire(context.Background(), &api.RewireRequest{
-			DownstreamId:      downstreamID,
-			DownstreamAddress: downstreamAddress,
+			Downstream: &api.RewireRequest_Target{
+				Id:      *downstreamID,
+				Address: *downstreamAddress,
+			},
+			UpstreamCount: 0,
 		}); err != nil {
 			return nil, err
 		}
@@ -170,9 +173,11 @@ func (s *ServerNode) handleTailHandoff(ctx context.Context) error {
 		case *api.TailHandoffResponse_Handoff:
 			if err := stream.Send(&api.TailHandoffRequest{
 				RewireRequest: &api.RewireRequest{
-					UpstreamId:      &s.id,
-					UpstreamAddress: &s.address,
-					UpstreamCount:   1,
+					Upstream: &api.RewireRequest_Target{
+						Id:      s.id,
+						Address: s.address,
+					},
+					UpstreamCount: 1,
 				},
 			}); err != nil {
 				shared.Logger.ErrorContext(ctx, "failed to send rewire request")

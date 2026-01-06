@@ -359,14 +359,12 @@ func (x *ApplyWALEntryRequest) GetEntry() *WALEntry {
 }
 
 type RewireRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	DownstreamId      *string                `protobuf:"bytes,1,opt,name=downstream_id,json=downstreamId,proto3,oneof" json:"downstream_id,omitempty"`
-	DownstreamAddress *string                `protobuf:"bytes,2,opt,name=downstream_address,json=downstreamAddress,proto3,oneof" json:"downstream_address,omitempty"`
-	UpstreamId        *string                `protobuf:"bytes,3,opt,name=upstream_id,json=upstreamId,proto3,oneof" json:"upstream_id,omitempty"`
-	UpstreamAddress   *string                `protobuf:"bytes,4,opt,name=upstream_address,json=upstreamAddress,proto3,oneof" json:"upstream_address,omitempty"`
-	UpstreamCount     int32                  `protobuf:"varint,5,opt,name=upstream_count,json=upstreamCount,proto3" json:"upstream_count,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Downstream    *RewireRequest_Target  `protobuf:"bytes,1,opt,name=downstream,proto3,oneof" json:"downstream,omitempty"`
+	Upstream      *RewireRequest_Target  `protobuf:"bytes,2,opt,name=upstream,proto3,oneof" json:"upstream,omitempty"`
+	UpstreamCount int32                  `protobuf:"varint,3,opt,name=upstream_count,json=upstreamCount,proto3" json:"upstream_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RewireRequest) Reset() {
@@ -399,32 +397,18 @@ func (*RewireRequest) Descriptor() ([]byte, []int) {
 	return file_internal_api_internal_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *RewireRequest) GetDownstreamId() string {
-	if x != nil && x.DownstreamId != nil {
-		return *x.DownstreamId
+func (x *RewireRequest) GetDownstream() *RewireRequest_Target {
+	if x != nil {
+		return x.Downstream
 	}
-	return ""
+	return nil
 }
 
-func (x *RewireRequest) GetDownstreamAddress() string {
-	if x != nil && x.DownstreamAddress != nil {
-		return *x.DownstreamAddress
+func (x *RewireRequest) GetUpstream() *RewireRequest_Target {
+	if x != nil {
+		return x.Upstream
 	}
-	return ""
-}
-
-func (x *RewireRequest) GetUpstreamId() string {
-	if x != nil && x.UpstreamId != nil {
-		return *x.UpstreamId
-	}
-	return ""
-}
-
-func (x *RewireRequest) GetUpstreamAddress() string {
-	if x != nil && x.UpstreamAddress != nil {
-		return *x.UpstreamAddress
-	}
-	return ""
+	return nil
 }
 
 func (x *RewireRequest) GetUpstreamCount() int32 {
@@ -432,6 +416,66 @@ func (x *RewireRequest) GetUpstreamCount() int32 {
 		return x.UpstreamCount
 	}
 	return 0
+}
+
+type RewireRequest_Target struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Drop          bool                   `protobuf:"varint,3,opt,name=drop,proto3" json:"drop,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RewireRequest_Target) Reset() {
+	*x = RewireRequest_Target{}
+	mi := &file_internal_api_internal_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RewireRequest_Target) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewireRequest_Target) ProtoMessage() {}
+
+func (x *RewireRequest_Target) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_api_internal_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewireRequest_Target.ProtoReflect.Descriptor instead.
+func (*RewireRequest_Target) Descriptor() ([]byte, []int) {
+	return file_internal_api_internal_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *RewireRequest_Target) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RewireRequest_Target) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *RewireRequest_Target) GetDrop() bool {
+	if x != nil {
+		return x.Drop
+	}
+	return false
 }
 
 var File_internal_api_internal_proto protoreflect.FileDescriptor
@@ -459,18 +503,19 @@ const file_internal_api_internal_proto_rawDesc = "" +
 	"\ahandoff\x18\x02 \x01(\bH\x00R\ahandoffB\t\n" +
 	"\amessage\";\n" +
 	"\x14ApplyWALEntryRequest\x12#\n" +
-	"\x05entry\x18\x01 \x01(\v2\r.api.WALEntryR\x05entry\"\xb8\x02\n" +
-	"\rRewireRequest\x12(\n" +
-	"\rdownstream_id\x18\x01 \x01(\tH\x00R\fdownstreamId\x88\x01\x01\x122\n" +
-	"\x12downstream_address\x18\x02 \x01(\tH\x01R\x11downstreamAddress\x88\x01\x01\x12$\n" +
-	"\vupstream_id\x18\x03 \x01(\tH\x02R\n" +
-	"upstreamId\x88\x01\x01\x12.\n" +
-	"\x10upstream_address\x18\x04 \x01(\tH\x03R\x0fupstreamAddress\x88\x01\x01\x12%\n" +
-	"\x0eupstream_count\x18\x05 \x01(\x05R\rupstreamCountB\x10\n" +
-	"\x0e_downstream_idB\x15\n" +
-	"\x13_downstream_addressB\x0e\n" +
-	"\f_upstream_idB\x13\n" +
-	"\x11_upstream_address2\xdd\x01\n" +
+	"\x05entry\x18\x01 \x01(\v2\r.api.WALEntryR\x05entry\"\x96\x02\n" +
+	"\rRewireRequest\x12>\n" +
+	"\n" +
+	"downstream\x18\x01 \x01(\v2\x19.api.RewireRequest.TargetH\x00R\n" +
+	"downstream\x88\x01\x01\x12:\n" +
+	"\bupstream\x18\x02 \x01(\v2\x19.api.RewireRequest.TargetH\x01R\bupstream\x88\x01\x01\x12%\n" +
+	"\x0eupstream_count\x18\x03 \x01(\x05R\rupstreamCount\x1aF\n" +
+	"\x06Target\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
+	"\x04drop\x18\x03 \x01(\bR\x04dropB\r\n" +
+	"\v_downstreamB\v\n" +
+	"\t_upstream2\xdd\x01\n" +
 	"\x1bInternalMessageBoardService\x12B\n" +
 	"\rApplyWALEntry\x12\x19.api.ApplyWALEntryRequest\x1a\x16.google.protobuf.Empty\x124\n" +
 	"\x06Rewire\x12\x12.api.RewireRequest\x1a\x16.google.protobuf.Empty\x12D\n" +
@@ -489,7 +534,7 @@ func file_internal_api_internal_proto_rawDescGZIP() []byte {
 }
 
 var file_internal_api_internal_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_internal_api_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_api_internal_proto_goTypes = []any{
 	(WALEntry_Op)(0),             // 0: api.WALEntry.Op
 	(WALEntry_Target)(0),         // 1: api.WALEntry.Target
@@ -498,25 +543,28 @@ var file_internal_api_internal_proto_goTypes = []any{
 	(*TailHandoffResponse)(nil),  // 4: api.TailHandoffResponse
 	(*ApplyWALEntryRequest)(nil), // 5: api.ApplyWALEntryRequest
 	(*RewireRequest)(nil),        // 6: api.RewireRequest
-	(*emptypb.Empty)(nil),        // 7: google.protobuf.Empty
+	(*RewireRequest_Target)(nil), // 7: api.RewireRequest.Target
+	(*emptypb.Empty)(nil),        // 8: google.protobuf.Empty
 }
 var file_internal_api_internal_proto_depIdxs = []int32{
-	0, // 0: api.WALEntry.op:type_name -> api.WALEntry.Op
-	1, // 1: api.WALEntry.target:type_name -> api.WALEntry.Target
-	6, // 2: api.TailHandoffRequest.rewire_request:type_name -> api.RewireRequest
-	2, // 3: api.TailHandoffResponse.entry:type_name -> api.WALEntry
-	2, // 4: api.ApplyWALEntryRequest.entry:type_name -> api.WALEntry
-	5, // 5: api.InternalMessageBoardService.ApplyWALEntry:input_type -> api.ApplyWALEntryRequest
-	6, // 6: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
-	3, // 7: api.InternalMessageBoardService.TailHandoff:input_type -> api.TailHandoffRequest
-	7, // 8: api.InternalMessageBoardService.ApplyWALEntry:output_type -> google.protobuf.Empty
-	7, // 9: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
-	4, // 10: api.InternalMessageBoardService.TailHandoff:output_type -> api.TailHandoffResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	0,  // 0: api.WALEntry.op:type_name -> api.WALEntry.Op
+	1,  // 1: api.WALEntry.target:type_name -> api.WALEntry.Target
+	6,  // 2: api.TailHandoffRequest.rewire_request:type_name -> api.RewireRequest
+	2,  // 3: api.TailHandoffResponse.entry:type_name -> api.WALEntry
+	2,  // 4: api.ApplyWALEntryRequest.entry:type_name -> api.WALEntry
+	7,  // 5: api.RewireRequest.downstream:type_name -> api.RewireRequest.Target
+	7,  // 6: api.RewireRequest.upstream:type_name -> api.RewireRequest.Target
+	5,  // 7: api.InternalMessageBoardService.ApplyWALEntry:input_type -> api.ApplyWALEntryRequest
+	6,  // 8: api.InternalMessageBoardService.Rewire:input_type -> api.RewireRequest
+	3,  // 9: api.InternalMessageBoardService.TailHandoff:input_type -> api.TailHandoffRequest
+	8,  // 10: api.InternalMessageBoardService.ApplyWALEntry:output_type -> google.protobuf.Empty
+	8,  // 11: api.InternalMessageBoardService.Rewire:output_type -> google.protobuf.Empty
+	4,  // 12: api.InternalMessageBoardService.TailHandoff:output_type -> api.TailHandoffResponse
+	10, // [10:13] is the sub-list for method output_type
+	7,  // [7:10] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_internal_api_internal_proto_init() }
@@ -535,7 +583,7 @@ func file_internal_api_internal_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_api_internal_proto_rawDesc), len(file_internal_api_internal_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

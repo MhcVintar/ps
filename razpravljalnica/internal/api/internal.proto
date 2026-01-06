@@ -52,9 +52,13 @@ message ApplyWALEntryRequest {
 }
 
 message RewireRequest {
-  optional string downstream_id = 1;
-  optional string downstream_address = 2;
-  optional string upstream_id = 3;
-  optional string upstream_address = 4;
-  int32 upstream_count = 5;
+  optional Target downstream = 1;
+  optional Target upstream = 2;
+  int32 upstream_count = 3;
+
+  message Target {
+    string id = 1;
+    string address = 2;
+    bool drop = 3;
+  }
 }
