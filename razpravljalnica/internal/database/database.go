@@ -208,8 +208,9 @@ func getTarget(value any) api.WALEntry_Target {
 	return target
 }
 
-func (d *Database) FindUserByID(id int64) (user *User, err error) {
-	if err := d.db.First(user, id).Error; err != nil {
+func (d *Database) FindUserByID(id int64) (*User, error) {
+	var user User
+	if err := d.db.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -217,11 +218,12 @@ func (d *Database) FindUserByID(id int64) (user *User, err error) {
 		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
-func (d *Database) FindTopicByID(id int64) (topic *Topic, err error) {
-	if err := d.db.First(topic, id).Error; err != nil {
+func (d *Database) FindTopicByID(id int64) (*Topic, error) {
+	var topic Topic
+	if err := d.db.First(&topic, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -229,10 +231,11 @@ func (d *Database) FindTopicByID(id int64) (topic *Topic, err error) {
 		return nil, err
 	}
 
-	return topic, nil
+	return &topic, nil
 }
 
-func (d *Database) FindAllTopics() (topics []Topic, err error) {
+func (d *Database) FindAllTopics() ([]Topic, error) {
+	var topics []Topic
 	if err := d.db.Find(&topics).Error; err != nil {
 		return nil, err
 	}
@@ -240,8 +243,9 @@ func (d *Database) FindAllTopics() (topics []Topic, err error) {
 	return topics, nil
 }
 
-func (d *Database) FindMessageByID(id int64) (message *Message, err error) {
-	if err := d.db.First(message, id).Error; err != nil {
+func (d *Database) FindMessageByID(id int64) (*Message, error) {
+	var message Message
+	if err := d.db.First(&message, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -249,10 +253,11 @@ func (d *Database) FindMessageByID(id int64) (message *Message, err error) {
 		return nil, err
 	}
 
-	return message, nil
+	return &message, nil
 }
 
-func (d *Database) FindAllMessages(fromMessageID, topicID int64, limit int) (messages []Message, err error) {
+func (d *Database) FindAllMessages(fromMessageID, topicID int64, limit int) ([]Message, error) {
+	var messages []Message
 	if err := d.db.
 		Where("id >= ? AND topic_id = ?", fromMessageID, topicID).
 		Order("id ASC").
