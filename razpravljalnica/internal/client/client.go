@@ -376,6 +376,7 @@ func Bootstrap(serverName string, port int) {
 	//Preiodically see other topics
 	go func() {
 		for {
+			setHeadAndTail()
 
 			getTopics()
 			if globalCurrentTopic != -1 {
@@ -472,7 +473,7 @@ func runGUI() error {
 			} else {
 				likeMessage(data.Id, index)
 			}
-		case tcell.KeyDelete:
+		case tcell.KeyESC:
 			{
 				index := msgs.GetCurrentItem()
 				data := listOfCurrentMessages[index]

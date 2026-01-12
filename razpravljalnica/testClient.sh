@@ -1,2 +1,2 @@
 #!/bin/bash
-make buildClient && cd build && ./client -p $1 -a $2
+make buildClient && cd build && ./client -a $1 -p $2
