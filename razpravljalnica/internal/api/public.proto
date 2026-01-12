@@ -36,10 +36,11 @@ message Like {
 }
 
 enum OpType {
-  OP_POST = 0; // add a message to a topic
-  OP_LIKE = 1; // like a message
-  OP_DELETE = 2; // delete a message
-  OP_UPDATE = 3; // update a message
+  OP_UNSPECIFIED = 0;
+  OP_POST = 1; // add a message to a topic
+  OP_LIKE = 2; // like a message
+  OP_DELETE = 3; // delete a message
+  OP_UPDATE = 4; // update a message
 }
 
 message NodeInfo {

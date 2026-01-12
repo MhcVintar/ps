@@ -26,25 +26,28 @@ const (
 type OpType int32
 
 const (
-	OpType_OP_POST   OpType = 0 // add a message to a topic
-	OpType_OP_LIKE   OpType = 1 // like a message
-	OpType_OP_DELETE OpType = 2 // delete a message
-	OpType_OP_UPDATE OpType = 3 // update a message
+	OpType_OP_UNSPECIFIED OpType = 0
+	OpType_OP_POST        OpType = 1 // add a message to a topic
+	OpType_OP_LIKE        OpType = 2 // like a message
+	OpType_OP_DELETE      OpType = 3 // delete a message
+	OpType_OP_UPDATE      OpType = 4 // update a message
 )
 
 // Enum value maps for OpType.
 var (
 	OpType_name = map[int32]string{
-		0: "OP_POST",
-		1: "OP_LIKE",
-		2: "OP_DELETE",
-		3: "OP_UPDATE",
+		0: "OP_UNSPECIFIED",
+		1: "OP_POST",
+		2: "OP_LIKE",
+		3: "OP_DELETE",
+		4: "OP_UPDATE",
 	}
 	OpType_value = map[string]int32{
-		"OP_POST":   0,
-		"OP_LIKE":   1,
-		"OP_DELETE": 2,
-		"OP_UPDATE": 3,
+		"OP_UNSPECIFIED": 0,
+		"OP_POST":        1,
+		"OP_LIKE":        2,
+		"OP_DELETE":      3,
+		"OP_UPDATE":      4,
 	}
 )
 
@@ -1082,7 +1085,7 @@ func (x *MessageEvent) GetOp() OpType {
 	if x != nil {
 		return x.Op
 	}
-	return OpType_OP_POST
+	return OpType_OP_UNSPECIFIED
 }
 
 func (x *MessageEvent) GetMessage() *Message {
@@ -1229,12 +1232,13 @@ const file_internal_api_public_proto_rawDesc = "" +
 	"\bevent_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aeventAt\"_\n" +
 	"\x17GetClusterStateResponse\x12!\n" +
 	"\x04head\x18\x01 \x01(\v2\r.api.NodeInfoR\x04head\x12!\n" +
-	"\x04tail\x18\x02 \x01(\v2\r.api.NodeInfoR\x04tail*@\n" +
-	"\x06OpType\x12\v\n" +
-	"\aOP_POST\x10\x00\x12\v\n" +
-	"\aOP_LIKE\x10\x01\x12\r\n" +
-	"\tOP_DELETE\x10\x02\x12\r\n" +
-	"\tOP_UPDATE\x10\x032\xf5\x04\n" +
+	"\x04tail\x18\x02 \x01(\v2\r.api.NodeInfoR\x04tail*T\n" +
+	"\x06OpType\x12\x12\n" +
+	"\x0eOP_UNSPECIFIED\x10\x00\x12\v\n" +
+	"\aOP_POST\x10\x01\x12\v\n" +
+	"\aOP_LIKE\x10\x02\x12\r\n" +
+	"\tOP_DELETE\x10\x03\x12\r\n" +
+	"\tOP_UPDATE\x10\x042\xf5\x04\n" +
 	"\fMessageBoard\x12/\n" +
 	"\n" +
 	"CreateUser\x12\x16.api.CreateUserRequest\x1a\t.api.User\x122\n" +

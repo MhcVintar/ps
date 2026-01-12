@@ -51,6 +51,11 @@ func (s *ServerNode) LikeMessage(ctx context.Context, req *api.LikeMessageReques
 			shared.Logger.ErrorContext(ctx, "failed to save like", "error", err)
 			return nil, err
 		}
+
+		if err := s.db.Save(ctx, &message); err != nil {
+			shared.Logger.ErrorContext(ctx, "failed to save message", "error", err)
+			return nil, err
+		}
 	}
 
 	return database.ToApiMessage(message), nil

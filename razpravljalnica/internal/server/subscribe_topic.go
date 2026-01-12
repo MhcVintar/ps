@@ -14,7 +14,7 @@ func (s *ServerNode) SubscribeTopic(req *api.SubscribeTopicRequest, stream grpc.
 	observable, cancel := s.messageEventObserver.Observe(ctx, req.SubscribeToken, req.TopicId...)
 	defer cancel()
 
-	var sequenceNumber int64
+	sequenceNumber := int64(1)
 
 	for _, topicID := range req.TopicId {
 		messages, err := s.db.FindAllMessages(req.FromMessageId, topicID, 1000)
