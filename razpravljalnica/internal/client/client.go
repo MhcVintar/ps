@@ -111,13 +111,21 @@ func updateTopicsOnSidebar() {
 	if len(topicTree.GetChildren()) > 0 {
 		topicView.SetCurrentNode(topicTree.GetChildren()[0])
 	}
-	time.Sleep(10 * time.Second)
+}
+
+func removeId(msg *api.Message, lista []*api.Message) []*api.Message {
+	var x []*api.Message
+	for _, i := range lista {
+		if msg.Id != i.Id {
+			x = append(x, i)
+		}
+	}
+	return x
 }
 
 // Creates a subscription on current topic
 func createSubscription(from int64) {
 	// 1. Request a node to which a subscription can be opened
-	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	ctx := context.WithoutCancel(context.Background())
 	//defer cancel()
 	response, err := client.GetSubscriptionNode(ctx, &api.SubscriptionNodeRequest{
@@ -127,14 +135,14 @@ func createSubscription(from int64) {
 	if err != nil {
 		handleStopWithError(err)
 	}
-	//nodeToSubscribeTo := response.Node
 	subscribeToken := response.SubscribeToken
 	// 2. Subscribe to topic given by previous request
-
-	//ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	conn, err := grpc.NewClient(response.Node.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	client2 := api.NewMessageBoardClient(conn)
+	//defer conn.Close()
 	ctx2 := context.WithoutCancel(context.Background())
 	//defer cancel2()
-	stream, err := client.SubscribeTopic(ctx2, &api.SubscribeTopicRequest{
+	stream, err := client2.SubscribeTopic(ctx2, &api.SubscribeTopicRequest{
 		TopicId:        []int64{globalCurrentTopic},
 		UserId:         idOfClient,
 		FromMessageId:  from,
@@ -156,20 +164,25 @@ func createSubscription(from int64) {
 				break
 			}
 			postedMsg := event.Message
+			tmp := hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId]
+			//app.Stop()
+			fmt.Printf("%+v", event)
 			if event.Op == api.OpType_OP_POST {
-				tmp := hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId]
+				fmt.Println("fucking lmao, get posted")
+				app.Stop()
 				tmp.ListOfMessagesInTopic = append(tmp.ListOfMessagesInTopic, postedMsg)
 				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
+				break
 			} else if event.Op == api.OpType_OP_LIKE {
-				tmp := hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId]
 				tmp.ListOfMessagesInTopic[postedMsg.Id].Likes = tmp.ListOfMessagesInTopic[postedMsg.Id].Likes + 1
 				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
 			} else if event.Op == api.OpType_OP_DELETE {
-				deleteMessage(postedMsg.Id)
+				tmp.ListOfMessagesInTopic = removeId(postedMsg, tmp.ListOfMessagesInTopic)
+				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
 			} else if event.Op == api.OpType_OP_UPDATE {
-				updateMessage(postedMsg.Id, postedMsg.Text, postedMsg.TopicId)
+
 			}
-			updateMessageViewWithOffset(postedMsg.Id, hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId])
+			//updateMessageViewWithOffset(postedMsg.Id, hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId])
 			// TODO: Update UI or state based on event
 		}
 	}()
