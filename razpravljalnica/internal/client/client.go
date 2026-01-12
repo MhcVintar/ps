@@ -472,6 +472,21 @@ func runGUI() error {
 			} else {
 				likeMessage(data.Id, index)
 			}
+		case tcell.KeyDelete:
+			{
+				index := msgs.GetCurrentItem()
+				data := listOfCurrentMessages[index]
+				if data == nil {
+					return event
+				}
+				if data.UserId == idOfClient {
+					deleteMessage(data.Id)
+					tmp := hashmapOfTopicToTopicStreamStruct[data.TopicId]
+					tmp.ListOfMessagesInTopic = removeId(data, tmp.ListOfMessagesInTopic)
+					hashmapOfTopicToTopicStreamStruct[data.TopicId] = tmp
+					updateMessageView()
+				}
+			}
 		}
 
 		return event
