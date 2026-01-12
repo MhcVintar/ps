@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"razpravljalnica/internal/api"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -48,6 +49,7 @@ var (
 	currentChild                      int
 	hashmapOfTopicToTopicStreamStruct map[int64]topicStreamStruct
 	topicIdToName                     map[int64]string
+	lock                              sync.Mutex
 )
 
 type topicStreamStruct struct {
@@ -81,7 +83,6 @@ func updateMessageViewWithOffset(offset int64, updateTopicVar topicStreamStruct)
 
 	}
 	msgs.SetCurrentItem(int(offset))
-
 }
 
 // General housekeeping
@@ -104,9 +105,12 @@ func updateTopicsOnSidebar() {
 	for _, topic := range listOfTopics {
 		tmp := tview.NewTreeNode(topic.Name).SetReference(topic)
 		topicTree.AddChild(tmp)
-		if hashmapOfTopicToTopicStreamStruct[topic.Id].StreamOfMsg != nil {
+		if topic.Id == globalCurrentTopic {
+			tmp.SetColor(tcell.ColorGreen)
+		} else if hashmapOfTopicToTopicStreamStruct[topic.Id].StreamOfMsg != nil {
 			tmp.SetColor(tcell.ColorRed)
 		}
+
 	}
 	if len(topicTree.GetChildren()) > 0 {
 		topicView.SetCurrentNode(topicTree.GetChildren()[0])
@@ -125,6 +129,7 @@ func removeId(msg *api.Message, lista []*api.Message) []*api.Message {
 
 // Creates a subscription on current topic
 func createSubscription(from int64) {
+
 	// 1. Request a node to which a subscription can be opened
 	ctx := context.WithoutCancel(context.Background())
 	//defer cancel()
@@ -154,6 +159,7 @@ func createSubscription(from int64) {
 	tmp := hashmapOfTopicToTopicStreamStruct[globalCurrentTopic]
 	tmp.StreamOfMsg = stream
 	tmp.SubscriptionHandleNode = response.Node
+	//tmp.Cancel = cancel
 	hashmapOfTopicToTopicStreamStruct[globalCurrentTopic] = tmp
 	// Start a goroutine to read from the stream
 	go func() {
@@ -165,22 +171,27 @@ func createSubscription(from int64) {
 			}
 			postedMsg := event.Message
 			tmp := hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId]
-			//app.Stop()
-			fmt.Printf("%+v", event)
+			app.Stop()
+			//fmt.Printf("%+v", event)
 			if event.Op == api.OpType_OP_POST {
-				fmt.Println("fucking lmao, get posted")
-				app.Stop()
+				//fmt.Println("fucking lmao, get posted")
 				tmp.ListOfMessagesInTopic = append(tmp.ListOfMessagesInTopic, postedMsg)
-				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
-				break
 			} else if event.Op == api.OpType_OP_LIKE {
 				tmp.ListOfMessagesInTopic[postedMsg.Id].Likes = tmp.ListOfMessagesInTopic[postedMsg.Id].Likes + 1
-				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
 			} else if event.Op == api.OpType_OP_DELETE {
 				tmp.ListOfMessagesInTopic = removeId(postedMsg, tmp.ListOfMessagesInTopic)
-				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
 			} else if event.Op == api.OpType_OP_UPDATE {
-
+				for i, msgToCheck := range tmp.ListOfMessagesInTopic {
+					if msgToCheck.Id == event.Message.Id {
+						msgToCheck.Text = event.Message.Text
+						tmp.ListOfMessagesInTopic[i] = msgToCheck
+						break
+					}
+				}
+			}
+			if event.Op >= 0 && event.Op <= 4 {
+				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
+				updateMessageView()
 			}
 			//updateMessageViewWithOffset(postedMsg.Id, hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId])
 			// TODO: Update UI or state based on event
@@ -201,10 +212,10 @@ func createUser() {
 	idOfClient = response.Id
 }
 
-func likeMessage(sporociloId int64) {
+func likeMessage(sporociloId int64, index int) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := client.LikeMessage(ctx, &api.LikeMessageRequest{
+	data, err := client.LikeMessage(ctx, &api.LikeMessageRequest{
 		TopicId:   globalCurrentTopic,
 		MessageId: sporociloId,
 		UserId:    idOfClient,
@@ -212,6 +223,10 @@ func likeMessage(sporociloId int64) {
 	if err != nil {
 		handleStopWithError(err)
 	}
+	msgs.SetItemText(index,
+		data.Text,
+		fmt.Sprintf("Likes: %d  Id:[%d] Created by id:%d", data.Likes, data.Id, data.UserId),
+	)
 }
 
 func sendMessage(sporocilo string, topicId int64) {
@@ -233,8 +248,10 @@ func sendMessage(sporocilo string, topicId int64) {
 		tmp := hashmapOfTopicToTopicStreamStruct[topicId]
 		tmp.ListOfMessagesInTopic = append(tmp.ListOfMessagesInTopic, postedMsg)
 		hashmapOfTopicToTopicStreamStruct[topicId] = tmp
-		updateMessageViewWithOffset(int64(len(tmp.ListOfMessagesInTopic)-1), hashmapOfTopicToTopicStreamStruct[topicId])
+		listOfCurrentMessages = tmp.ListOfMessagesInTopic
+		updateMessageViewWithOffset(int64(len(tmp.ListOfMessagesInTopic)-1), tmp)
 	}
+
 }
 
 func deleteMessage(sporociloId int64) {
@@ -357,7 +374,10 @@ func Bootstrap(serverName string, port int) {
 	//Preiodically see other topics
 	go func() {
 		getTopics()
-		time.Sleep(5 * time.Second)
+		if globalCurrentTopic != -1 {
+			getMsgs(0, 50, globalCurrentTopic)
+		}
+		time.Sleep(1 * time.Second)
 	}()
 	if x := runGUI(); x != nil {
 		return
@@ -435,7 +455,8 @@ func runGUI() error {
 	msgs.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
-			data := listOfCurrentMessages[msgs.GetCurrentItem()]
+			index := msgs.GetCurrentItem()
+			data := listOfCurrentMessages[index]
 			if data == nil {
 				return event
 			}
@@ -444,7 +465,7 @@ func runGUI() error {
 			if data.UserId == idOfClient {
 				updateMessage(data.Id, textField.GetText(), data.TopicId)
 			} else {
-				likeMessage(data.Id)
+				likeMessage(data.Id, index)
 			}
 		}
 
@@ -489,24 +510,18 @@ func runGUI() error {
 					node = inter.(*api.Topic)
 				} else {
 					app.Stop()
-					fmt.Println(inter)
-					log.Fatal(inter)
+					fmt.Println("Reference passed by topicView was null")
 				}
-				tmpStruct, b := hashmapOfTopicToTopicStreamStruct[node.Id]
-				if b == false {
-					//app.Stop()
-					fmt.Println(tmpStruct, " currentTopic", globalCurrentTopic)
-				}
-				if tmpStruct.Topic == nil {
-					//getTopics()
-				}
+				tmpStruct, _ := hashmapOfTopicToTopicStreamStruct[node.Id]
+
 				if globalCurrentTopic == tmpStruct.Topic.Id {
 					messages := tmpStruct.ListOfMessagesInTopic
 					lastMessage := (len(tmpStruct.ListOfMessagesInTopic) - 1)
+
 					if lastMessage < 0 {
 						createSubscription(int64(0))
 					} else {
-						createSubscription(messages[lastMessage].Id)
+						createSubscription(messages[lastMessage].Id + 1)
 					}
 				} else {
 					globalCurrentTopic = tmpStruct.Topic.Id
