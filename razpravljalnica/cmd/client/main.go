@@ -1,12 +1,12 @@
 package main
 
 import (
-
 	"context"
 	"fmt"
-	"razpravljalnica/internal/client"
-	"github.com/urfave/cli/v3"
 	"os"
+	"razpravljalnica/internal/client"
+
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
@@ -17,16 +17,16 @@ func main() {
 		Usage: "Start the server",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "address",
-				Aliases:  []string{"a"},
-				Usage:    "Address for the server",
-				Value: "localhost",
+				Name:    "address",
+				Aliases: []string{"a"},
+				Usage:   "Address for the server",
+				Value:   "localhost",
 			},
 			&cli.IntFlag{
-				Name: "port",
+				Name:    "port",
 				Aliases: []string{"p"},
-				Usage: "Port to connect to server",
-				Value: 8080,
+				Usage:   "Port to connect to server",
+				Value:   8000,
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
@@ -43,4 +43,3 @@ func main() {
 		fmt.Println("fffff")
 	}
 }
-
