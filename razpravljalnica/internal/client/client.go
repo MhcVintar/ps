@@ -70,16 +70,13 @@ func updateMessageViewWithOffset(offset int64, updateTopicVar topicStreamStruct)
 	}
 	msgs.Clear()
 
-	for _, message := range listOfCurrentMessages {
-		if globalCurrentTopic == message.TopicId {
-			msgs.AddItem(
-				message.Text,
-				fmt.Sprintf("Likes: %d  Id:[%d] Created by id:%d", message.Likes, message.Id, message.UserId),
-				0,
-				nil,
-			)
-
-		}
+	for _, message := range hashmapOfTopicToTopicStreamStruct[globalCurrentTopic].ListOfMessagesInTopic {
+		msgs.AddItem(
+			message.Text,
+			fmt.Sprintf("Likes: %d  Id:[%d] Created by id:%d", message.Likes, message.Id, message.UserId),
+			0,
+			nil,
+		)
 
 	}
 	msgs.SetCurrentItem(int(offset))
@@ -174,12 +171,14 @@ func createSubscription(from int64) {
 			app.Stop()
 			//fmt.Printf("%+v", event)
 			if event.Op == api.OpType_OP_POST {
-				//fmt.Println("fucking lmao, get posted")
 				tmp.ListOfMessagesInTopic = append(tmp.ListOfMessagesInTopic, postedMsg)
+				textField.SetBackgroundColor(tcell.ColorRed)
 			} else if event.Op == api.OpType_OP_LIKE {
 				tmp.ListOfMessagesInTopic[postedMsg.Id].Likes = tmp.ListOfMessagesInTopic[postedMsg.Id].Likes + 1
+				textField.SetBackgroundColor(tcell.ColorBlue)
 			} else if event.Op == api.OpType_OP_DELETE {
 				tmp.ListOfMessagesInTopic = removeId(postedMsg, tmp.ListOfMessagesInTopic)
+				textField.SetBackgroundColor(tcell.ColorYellow)
 			} else if event.Op == api.OpType_OP_UPDATE {
 				for i, msgToCheck := range tmp.ListOfMessagesInTopic {
 					if msgToCheck.Id == event.Message.Id {
@@ -188,10 +187,13 @@ func createSubscription(from int64) {
 						break
 					}
 				}
+				textField.SetBackgroundColor(tcell.ColorGreen)
 			}
 			if event.Op >= 0 && event.Op <= 4 {
 				hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId] = tmp
-				updateMessageView()
+				if globalCurrentTopic == event.Message.TopicId {
+					updateMessageView()
+				}
 			}
 			//updateMessageViewWithOffset(postedMsg.Id, hashmapOfTopicToTopicStreamStruct[postedMsg.TopicId])
 			// TODO: Update UI or state based on event
@@ -373,11 +375,14 @@ func Bootstrap(serverName string, port int) {
 
 	//Preiodically see other topics
 	go func() {
-		getTopics()
-		if globalCurrentTopic != -1 {
-			getMsgs(0, 50, globalCurrentTopic)
+		for {
+
+			getTopics()
+			if globalCurrentTopic != -1 {
+				getMsgs(0, 50, globalCurrentTopic)
+			}
+			time.Sleep(10 * time.Second)
 		}
-		time.Sleep(1 * time.Second)
 	}()
 	if x := runGUI(); x != nil {
 		return
