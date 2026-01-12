@@ -13,6 +13,7 @@ import(
 	"context"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
+	"strings"
 )
 const(
 	sidebarFocus = 0
@@ -21,10 +22,11 @@ const(
 
 var(
 	app *tview.Application
-	chooseTopic *tview.TextView
+	topicView *tview.TreeView
+	topicTree *tview.TreeNode
 	exitButton *tview.Button
 	sidebar *tview.Flex
-	msgs *tview.TextView
+	msgs *tview.List
 	textField *tview.TextArea
 	sendButton *tview.Button
 	pages *tview.Pages
@@ -37,11 +39,11 @@ var(
 	UUID string
 	idOfClient int64
 	listOfTopics []*api.Topic
-	listOfMessages []*api.Message
+	listOfCurrentMessages []*api.Message
 	globalCurrentTopic int64
 	head *api.NodeInfo
 	tail *api.NodeInfo
-	
+	currentChild int
 )
 
 type topicStreamStruct struct{
@@ -61,15 +63,43 @@ ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	}
 */
 
-func handleStop(){
-
-	app.Stop()
+func updateMessageView(){
+	updateMessageViewWithOffset(int64(0))
 }
 
-// TODO
-func updateTopicsOnSidebar(){
-	for indexOfTopic, topic := range listOfTopics{
+func updateMessageViewWithOffset(offset int64){
+	msgs.Clear()
+	for _, message := range listOfCurrentMessages{
+		if(globalCurrentTopic == message.TopicId){
+			msgs.AddItem(
+                message.Text,
+                fmt.Sprintf("Likes: %d  Id:[%d] Created by id:%d", message.Likes, message.Id, message.UserId),
+                0, 
+				nil,
+			)
+			
+		}
+		
+	}
+	msgs.SetCurrentItem(int(offset))
 
+}
+
+
+
+//General housekeeping
+func handleStop(){
+	app.Stop()
+}
+//should be called once per wheneverthefuck
+func updateTopicsOnSidebar(){
+	topicTree.ClearChildren()
+	for _, topic := range listOfTopics{
+		tmp := tview.NewTreeNode(topic.Name)
+		topicTree.AddChild(tmp)
+	}
+	if(len(topicTree.GetChildren()) > 0){
+		topicView.SetCurrentNode(topicTree.GetChildren()[0])
 	}
 }
 
@@ -85,7 +115,7 @@ func createSubscription(from int64){
 	if err != nil {
 		log.Fatal(err)
 	}
-	nodeToSubscribeTo := response.Node
+	//nodeToSubscribeTo := response.Node
 	subscribeToken := response.SubscribeToken
 	// 2. Subscribe to topic given by previous request
 
@@ -143,6 +173,7 @@ func likeMessage(sporociloId int64){
 	if err != nil {
 		log.Fatal(err)
 	}
+	updateMessageViewWithOffset(sporociloId)
 }
 
 func sendMessage(sporocilo string){
@@ -157,6 +188,7 @@ func sendMessage(sporocilo string){
 		if err != nil {
 			log.Fatal(err)
 		}
+		updateMessageView()
 	}
 }
 
@@ -171,6 +203,7 @@ func deleteMessage(sporociloId int64){
 	if err != nil {
 		log.Fatal(err)
 	}
+	updateMessageView()
 }
 
 func createTopic(topicName string){
@@ -183,6 +216,7 @@ func createTopic(topicName string){
 		if err != nil {
 			log.Fatal(err)
 		}
+		updateTopicsOnSidebar()
 	}
 }
 
@@ -199,6 +233,7 @@ func updateMessage(messageId int64, newText string){
 		if err != nil {
 			log.Fatal(err)
 		}
+		getMsgs(int64(0), int32(-1))
 	}
 }
 
@@ -226,12 +261,14 @@ func getMsgs(from int64, limit int32){
 	if err != nil {
 		log.Fatal(err)
 	}
-	listOfMessages = tmpListOfMessages.Messages
+	listOfCurrentMessages = tmpListOfMessages.Messages
+	updateMessageView()
 }
 
 
 
 func Bootstrap(serverName string, port int){
+	currentChild = -1
 	UUID = uuid.NewString()
 	address := fmt.Sprintf("%s:%d", serverName, port)
     conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -239,12 +276,9 @@ func Bootstrap(serverName string, port int){
         log.Fatalf("Failed to connect to %s: %v", address, err)
     }
     defer conn.Close()
-
+	listOfTopics = []*api.Topic{}
 	client = api.NewMessageBoardClient(conn)
-
 	
-
-
 	if x:=runGUI(); x!= nil{
 		return
 	}
@@ -279,16 +313,12 @@ func runGUI() error{
 	fmt.Println("Client bootstrap")
 	app = tview.NewApplication()
 
-	chooseTopic := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignLeft).
-		SetChangedFunc(func() {
-			app.Draw()
-		}).
-		SetText("1YIPEEE\n2YIPEE\n3YIPEE\n4YIPEE\n5YIPEE\n6YIPEE\n7YIPEE\n8YIPEE\n9YIPEE\n10YIPEE\n11YIPEE\n12YIPEE\n13YIPEE\n14YIPEE\n15YIPEE\n16YIPEE\n17YIPEE\n18YIPEE\n19YIPEE\n20YIPEE\n21YIPEE\n22YIPEE\n23YIPEE\n24YIPEE\n25YIPEE\n26YIPEE\n27YIPEE\n28YIPEE\n29YIPEE\n30YIPEE\n31YIPEE\n32YIPEE\n33YIPEE\n34YIPEE\n35YIPEE\n36YIPEE\n37YIPEE\n38YIPEE\n39YIPEE\n40YIPEE\n41YIPEE\n42YIPEE\n43YIPEE\n44YIPEE\n45YIPEE\n46YIPEE\n47YIPEE\n48YIPEE\n49YIPEE")
+	//This will initialize into an empty Flex
+	topicTree = tview.NewTreeNode("Topics")
+	topicView = tview.NewTreeView().SetRoot(topicTree)
 
-	chooseTopic.SetBorder(true).SetTitle(" Choose topic ").SetTitleAlign(tview.AlignLeft)
-	exitButton := tview.NewButton("Exit").
+	topicView.SetBorder(true).SetTitle(" Choose topic ").SetTitleAlign(tview.AlignLeft)
+	exitButton = tview.NewButton("Exit").
 					SetSelectedFunc(func() {
 						handleStop()
 					})
@@ -302,19 +332,39 @@ func runGUI() error{
 		AddItem(addTopicButton, 0, 1, false)
 	sidebar := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(chooseTopic, 0, 10, true).
+		AddItem(topicView, 0, 10, true).
 		AddItem(rowButtons, 0, 1, false)
 
 	
-	msgs := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetWrap(true).
-		SetTextAlign(tview.AlignLeft).
-		SetChangedFunc(func() {
-			app.Draw()
-		}).
-		SetText("1YIPEEE\n2YIPEE\n3YIPEE\n4YIPEE\n5YIPEE\n6YIPEE\n7YIPEE\n8YIPEE\n9YIPEE\n10YIPEE\n11YIPEE\n12YIPEE\n13YIPEE\n14YIPEE\n15YIPEE\n16YIPEE\n17YIPEE\n18YIPEE\n19YIPEE\n20YIPEE\n21YIPEE\n22YIPEE\n23YIPEE\n24YIPEE\n25YIPEE\n26YIPEE\n27YIPEE\n28YIPEE\n29YIPEE\n30YIPEE\n31YIPEE\n32YIPEE\n33YIPEE\n34YIPEE\n35YIPEE\n36YIPEE\n37YIPEE\n38YIPEE\n39YIPEE\n40YIPEE\n41YIPEE\n42YIPEE\n43YIPEE\n44YIPEE\n45YIPEE\n46YIPEE\n47YIPEE\n48YIPEE\n49YIPEE")
+	/*msgs = tview.NewFlex().
+			SetDirection(tview.FlexRow)*/
+	msgs = tview.NewList().
+    	ShowSecondaryText(true)
+	msgs.SetBorder(true).SetTitle("Messages")
+	msgs.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key(){
+		case tcell.KeyEnter:
+			data := listOfCurrentMessages[msgs.GetCurrentItem()]
+			if data == nil{
+				return event
+			}
+
+			//TODO Like the msg if not the author, otherwise make a popup with editing MSG 
+			
+			//SWITCH THIS WITH LIKE MSG
+			data.Likes = data.Likes + 1
+			updateMessageViewWithOffset(int64(msgs.GetCurrentItem()))
+		}
+		
+		return event
+
+	})
+	msgs.SetMainTextStyle(
+		tcell.StyleDefault.
+			Foreground(tcell.ColorWhite).
+			Background(tcell.ColorBlue),
+	)
+
 	// Lower part of main section, meant to represent input
 	textField := tview.NewTextArea()
 	sendButton := tview.NewButton("Send").
@@ -341,6 +391,19 @@ func runGUI() error{
 		AddItem(main, 0, 3, true)
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
+			case tcell.KeyEnter:
+				if(app.GetFocus() == topicView){
+					node := topicView.GetCurrentNode()
+					text := node.GetText()
+					for _, currTopic := range listOfTopics{
+						if strings.EqualFold(text, currTopic.Name){
+							globalCurrentTopic = currTopic.Id
+							updateMessageView()
+							break
+						}
+		
+					}
+				}
 			case tcell.KeyLeft:
 				if(app.GetFocus() == sendButton){
 					app.SetFocus(textField)
@@ -357,15 +420,15 @@ func runGUI() error{
 				}
 			case tcell.KeyTab:
 				if (sidebarOrMainFocus == sidebarFocus){
-					if(app.GetFocus() == chooseTopic || app.GetFocus() == exitButton){
+					if(app.GetFocus() == topicView || app.GetFocus() == exitButton){
 						if(app.GetFocus() == exitButton){
-							app.SetFocus(chooseTopic)
+							app.SetFocus(topicView)
 						}else{
 							app.SetFocus(exitButton)
 						}
 					}else{
 						handleStop()
-						log.Fatal("Fatal error 100: tried getting focus in sidebar, did not get exitButton or chooseTopic")
+						log.Fatal("Fatal error 100: tried getting focus in sidebar, did not get exitButton or topicView")
 					}
 				}else if (sidebarOrMainFocus == mainFocus){
 					if(app.GetFocus() == msgs){
@@ -398,5 +461,6 @@ func runGUI() error{
 	})
 	pages = tview.NewPages()
 	pages.AddPage("main", layout, true, true)
+	updateTopicsOnSidebar()
 	return app.SetRoot(pages, true).Run()
 }
